@@ -208,6 +208,11 @@ include 'debug/dbg_print.inc'
 include 'debug/bench.inc'
 
 iglobal
+  ; Код адресуется только RIP-относительно, и перемещений в нём нет. Но Windows не
+  ; загружает образ с пустой секцией .reloc, а без неё невозможен ASLR. Поэтому одно
+  ; перемещение заведено намеренно (проверяется tools/check_pe.py).
+  align 8
+  reloc_anchor dq start
   sdef s_version, 'NanoWeb ', NANOWEB_VERSION, 10
   sdef s_usage, \
       'Usage: nanoweb [options]', 10, \

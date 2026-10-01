@@ -48,8 +48,11 @@ def check(path: str) -> list[str]:
     if pe.OPTIONAL_HEADER.SizeOfStackReserve != STACK_RESERVE:
         errors.append(f"stack reserve {pe.OPTIONAL_HEADER.SizeOfStackReserve:#x} != {STACK_RESERVE:#x}")
     reloc_dir = pe.OPTIONAL_HEADER.DATA_DIRECTORY[pefile.DIRECTORY_ENTRY["IMAGE_DIRECTORY_ENTRY_BASERELOC"]]
-    if reloc_dir.VirtualAddress == 0:
-        errors.append("no base relocation directory")
+    if reloc_dir.VirtualAddress == 0 or reloc_dir.Size == 0:
+        errors.append("no base relocation directory (or empty — Windows rejects such image)")
+    for section in pe.sections:
+        if section.Misc_VirtualSize == 0:
+            errors.append(f"empty section {section.Name.rstrip(bytes(1)).decode()}")
     resources = getattr(pe, "DIRECTORY_ENTRY_RESOURCE", None)
     if resources is None or not any(e.id == RT_MANIFEST for e in resources.entries):
         errors.append("no RT_MANIFEST resource")
