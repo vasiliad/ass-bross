@@ -15,11 +15,12 @@ build.bat
 Под капотом это `fasm src\main.asm build\nanoweb.exe`, перед вызовом в переменную окружения `INCLUDE` записывается путь к макросам FASM.
 
 ## 2. Разработка на Linux
-FASM для Linux собирает Windows-исполняемые файлы точно так же: формат результата задаётся директивой `format PE64` в исходнике. Нужно только скопировать каталог `INCLUDE/` из Windows-пакета FASM.
+FASM для Linux собирает Windows-исполняемые файлы точно так же: формат результата задаётся директивой `format PE64` в исходнике. Нужен каталог `INCLUDE/` из Windows-пакета FASM, **скопированный с именами файлов в нижнем регистре** (файловая система Linux различает регистр, а `win64a.inc` подключает `macro/struct.inc`). Принятое размещение: `~/.local/opt/fasm/include`, бинарник — `~/.local/bin/fasm`.
 
-* Сборка: `make` (вызывает `fasm` и задаёт `INCLUDE`).
+* Окружение Python: `uv venv .venv && uv pip install --python .venv/bin/python pytest pefile`.
+* Сборка: `make` (оба варианта exe + `patch_pe.py`), `make check` (+ `check_pe.py`), `make test` (+ pytest).
 * Быстрый запуск: **Wine** (`wine build/nanoweb.exe --dump-dom tests/pages/basic.html`). GDI, WinHTTP и WIC под Wine работают (поведение сети и декодеров на Windows всё равно проверяется отдельно). Шрифтов Segoe UI и Consolas под Wine нет — поэтому эталоны раскладки снимаются с тестовым шрифтом `--font-mock`.
-* Тесты: `make test` запускает pytest, который вызывает exe через Wine.
+* Тесты: `make test` запускает pytest, который вызывает exe через Wine. Без Wine выполняются только статические проверки, остальные тесты пропускаются — полный прогон идёт в CI на Windows. Wine ставится в корневой раздел (через apt); на машине разработчика там мало места, поэтому сейчас Wine не установлен.
 * Финальная проверка каждой вехи — на настоящей Windows (виртуальная машина или CI).
 
 ## 3. Отладка
@@ -30,7 +31,7 @@ FASM для Linux собирает Windows-исполняемые файлы т�
 | **DebugView** (Sysinternals) | Просмотр вывода `OutputDebugStringW` без отладчика |
 | Листинг FASM (`fasm -s` + утилита `listing`) | Сопоставление адресов в отладчике с исходником (FASM не создаёт PDB) |
 
-Отладочная сборка (`build.bat debug`) использует подсистему `console`: вывод `--dump-*` и `dbg_print_*` сразу виден в терминале. Релизная — `GUI`.
+`build.bat` и `make` собирают два файла: `build/nanoweb.exe` (подсистема GUI, релиз) и `build/nanoweb-con.exe` (подсистема console: вывод `--dump-*` и `dbg_print_*` сразу виден в терминале; на нём запускаются тесты).
 
 ## 4. Тестирование
 * **Golden-тесты:** `nanoweb.exe --dump-dom|--dump-vis|--dump-layout --font-mock file.html` → сравнение с `tests/golden/*.txt`. Обновление эталонов: `pytest --update-golden` (изменения эталонов проверяются глазами в diff).

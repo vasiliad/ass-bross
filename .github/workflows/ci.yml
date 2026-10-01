@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    env:
+      FASM_VERSION: "17335"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install FASM
+        shell: pwsh
+        run: |
+          Invoke-WebRequest "https://flatassembler.net/fasmw$env:FASM_VERSION.zip" -OutFile fasm.zip
+          Expand-Archive fasm.zip -DestinationPath "$env:RUNNER_TEMP\fasm"
+          "$env:RUNNER_TEMP\fasm" | Out-File -Append -Encoding utf8 $env:GITHUB_PATH
+          "INCLUDE=$env:RUNNER_TEMP\fasm\INCLUDE" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+
+      - name: Install Python packages
+        run: python -m pip install pytest pefile
+
+      - name: Build
+        shell: cmd
+        run: build.bat
+
+      - name: Test
+        run: python -m pytest -v tests
+
+      - name: Bench
+        run: python tools/bench.py --no-record
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nanoweb
+          path: |
+            build/nanoweb.exe
+            build/nanoweb-con.exe
