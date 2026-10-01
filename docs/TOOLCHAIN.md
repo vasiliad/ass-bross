@@ -18,7 +18,7 @@ build.bat
 FASM для Linux собирает Windows-исполняемые файлы точно так же: формат результата задаётся директивой `format PE64` в исходнике. Нужно только скопировать каталог `INCLUDE/` из Windows-пакета FASM.
 
 * Сборка: `make` (вызывает `fasm` и задаёт `INCLUDE`).
-* Быстрый запуск: **Wine** (`wine build/nanoweb.exe --dump-dom tests/pages/basic.html`). GDI, Winsock и SChannel под Wine работают.
+* Быстрый запуск: **Wine** (`wine build/nanoweb.exe --dump-dom tests/pages/basic.html`). GDI, WinHTTP и WIC под Wine работают (поведение сети и декодеров на Windows всё равно проверяется отдельно).
 * Тесты: `make test` запускает pytest, который вызывает exe через Wine.
 * Финальная проверка каждой вехи — на настоящей Windows (виртуальная машина или CI).
 
@@ -34,8 +34,8 @@ FASM для Linux собирает Windows-исполняемые файлы т�
 
 ## 4. Тестирование
 * **Golden-тесты:** `nanoweb.exe --dump-dom|--dump-style|--dump-layout file.html` → сравнение с `tests/golden/*.txt`. Обновление эталонов: `pytest --update-golden` (изменения эталонов проверяются глазами в diff).
-* **html5lib-tests:** конвертер из их формата в наш дамп; отслеживается доля пройденных тестов для поддерживаемого подмножества.
-* **Сеть:** `tests/server/` — Python-сервер с ответами на крайние случаи (chunked, редиректы, обрыв соединения, медленная отдача, windows-1251).
+* **Корпус реальных страниц:** `tests/pages/` — сохранённые копии сайтов из тестового набора (с картинками), для каждой — эталоны `--dump-dom`, `--dump-hidden`, `--dump-layout`.
+* **Сеть:** `tests/server/` — Python-сервер с ответами на крайние случаи (редиректы, обрыв соединения, медленная отдача, большие и битые картинки, windows-1251).
 * **Устойчивость к мусору:** прогон токенизатора и CSS-парсера на случайных и испорченных файлах (простой мутационный фаззер на Python). Полноценный фаззинг (WinAFL) — после M2.
 
 ## 5. Измерения (KPI)
@@ -55,7 +55,8 @@ GitHub Actions, раннер `windows-latest`:
 
 ## 7. Справочные материалы
 * Спецификация HTML (раздел Parsing): https://html.spec.whatwg.org/multipage/parsing.html
-* CSS 2.1 (box model, visual formatting model): https://www.w3.org/TR/CSS21/
-* html5lib-tests: https://github.com/html5lib/html5lib-tests
+* CSS Selectors (для правил скрытия): https://www.w3.org/TR/selectors-3/
+* WinHTTP: https://learn.microsoft.com/windows/win32/winhttp/winhttp-start-page
+* WIC: https://learn.microsoft.com/windows/win32/wic/-wic-lh
 * Документация FASM: https://flatassembler.net/docs.php
 * Win32 API: https://learn.microsoft.com/windows/win32/api/

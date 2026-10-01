@@ -9,16 +9,17 @@ nanoweb/
 │   ├── include/
 │   │   ├── structs.inc       ; все struct из MEMORY_MODEL.md
 │   │   └── consts.inc        ; TAG_*, PROP_*, KW_*, коды ошибок, WM_NET
-│   ├── hal/win64/            ; mem.inc, net.inc, gui.inc, font.inc, file.inc, time.inc
-│   ├── core/                 ; arena.inc, eventloop.inc, url.inc, http.inc, encoding.inc
-│   ├── engine/               ; html_tokenizer.inc, dom.inc, css_parser.inc, style.inc, layout.inc
+│   ├── hal/win64/            ; mem.inc, net.inc (WinHTTP), gui.inc, font.inc, image.inc (WIC), file.inc, time.inc
+│   ├── core/                 ; arena.inc, eventloop.inc, url.inc, encoding.inc, settings.inc
+│   ├── engine/               ; html_tokenizer.inc, dom.inc, hide_rules.inc, images.inc, reader_layout.inc
 │   ├── paint/                ; painter.inc
-│   ├── ui/                   ; addressbar.inc, history.inc, hittest.inc
+│   ├── ui/                   ; addressbar.inc, history.inc, hittest.inc, find.inc, search.inc
 │   ├── debug/                ; dbg_print.inc, dump_dom.inc, dump_layout.inc, stats.inc
-│   └── data/                 ; tags.inc, props.inc, entities.inc, colors.inc, ua.css
+│   └── data/                 ; tags.inc (теги и роли), attrs.inc, entities.inc, fonts.inc, casefold.inc
 ├── tests/
 │   ├── pages/                ; тестовые HTML-страницы
 │   ├── golden/               ; эталонный вывод --dump-*
+│   ├── bench/                ; корпус для замеров скорости
 │   ├── server/               ; локальный HTTP-сервер для тестов сети
 │   └── test_*.py             ; pytest
 ├── docs/
@@ -59,7 +60,6 @@ struct DOM_NODE
   Data_Len     dd ?
   Data_Ptr     dq ?
   First_Attr   dq ?
-  Style        dq ?
 ends
 
   mov  rax, [rbx + DOM_NODE.Last_Child]
@@ -67,14 +67,14 @@ ends
 ```
 * Только именованные смещения, никаких числовых.
 * После изменения структуры обновить `docs/MEMORY_MODEL.md` и проверить размер утверждением на этапе сборки:
-  `if sizeof.DOM_NODE <> 0x48` / `display 'DOM_NODE size mismatch'` / `err` / `end if`.
+  `if sizeof.DOM_NODE <> 0x40` / `display 'DOM_NODE size mismatch'` / `err` / `end if`.
 
 ## 5. Именование
 | Сущность | Стиль | Пример |
 |---|---|---|
 | Функции | `модуль_действие` | `arena_alloc`, `html_tokenize`, `layout_block` |
 | Функции HAL | `sys_модуль_действие` | `sys_mem_reserve`, `sys_net_connect` |
-| Структуры | `UPPER_SNAKE` | `RENDER_BOX` |
+| Структуры | `UPPER_SNAKE` | `DOM_NODE`, `LINE` |
 | Константы | `ПРЕФИКС_ИМЯ` | `TAG_DIV`, `PROP_COLOR`, `ERR_OOM` |
 | Глобальные переменные | `lower_snake` | `doc_arena`, `scroll_y` |
 | Локальные метки | `.имя` | `.next_char` |
@@ -82,6 +82,8 @@ ends
 ## 6. Правило слоёв
 * `invoke` WinAPI разрешён **только** в `src/hal/`.
 * `engine/` не зависит от `paint/` и `ui/`; `core/` не зависит от `engine/`.
+* Единственный код вне главного потока — колбэк WinHTTP в `hal/win64/net.inc`: он только вызывает `PostMessageW` и ничего не трогает в данных движка.
+* COM-вызовы WIC — через макрос `comcall` (вызов по таблице виртуальных методов); `CoInitializeEx` один раз при старте, в главном потоке.
 * Строки — срезы `ptr + len` (см. `MEMORY_MODEL.md`, раздел 2), UTF-8 внутри движка.
 
 ## 7. Комментарии
