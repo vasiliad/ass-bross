@@ -9,7 +9,7 @@ ARGV_MAX = 32
 
 uglobal
   argc       dd ?
-             dd ?
+  cmdline_error dd ?                ; 1 — командная строка слишком длинная или аргументов больше ARGV_MAX
   argv_ptr   rq ARGV_MAX
   argv_len   rd ARGV_MAX
   argv_buf   rb CMDLINE_MAX
@@ -19,7 +19,12 @@ endg
 ; cmdline_parse — заполнить argc / argv_ptr / argv_len.
 ; -----------------------------------------------------------------------------
 proc cmdline_parse uses rbx rsi rdi r12 r13 r14
+        mov     [cmdline_error], 0
         call    sys_cmdline_utf8
+        test    edx, edx
+        jnz     @f
+        mov     [cmdline_error], 1      ; не поместилась в буфер (в строке всегда есть хотя бы имя exe)
+  @@:
         mov     rsi, rax                ; вход (с нулём в конце)
         lea     rdi, [argv_buf]         ; выход: аргументы подряд
         lea     r14, [argv_ptr]         ; базы массивов (RIP-относительно, без абсолютных адресов)
@@ -34,7 +39,10 @@ proc cmdline_parse uses rbx rsi rdi r12 r13 r14
         test    al, al
         jz      .end
         cmp     ebx, ARGV_MAX
-        jae     .end
+        jb      @f
+        mov     [cmdline_error], 1      ; лишние аргументы не отбрасываются молча
+        jmp     .end
+  @@:
         ; начало нового аргумента
         mov     [r14 + rbx*8], rdi
         xor     r12d, r12d              ; внутри кавычек?

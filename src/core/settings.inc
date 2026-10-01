@@ -15,6 +15,7 @@ uglobal
 endg
 
 iglobal
+  align 2
   w_ini_name  du 'nanoweb.ini', 0
 endg
 
@@ -35,6 +36,7 @@ proc settings_load
   .appdata:
         lea     rcx, [ini_wpath]
         lea     rdx, [w_ini_name]
+        xor     r8d, r8d                ; только путь, каталог не создаём
         call    sys_appdata_path
         test    eax, eax
         jz      .done

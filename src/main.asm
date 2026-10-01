@@ -7,8 +7,9 @@
 ; После сборки tools/patch_pe.py выставляет флаги ASLR (ARCHITECTURE.md, раздел 12).
 ; =============================================================================
 
-match =1, CONSOLE { format PE64 NX console 6.0 }
-match =0, CONSOLE { format PE64 NX GUI 6.0 }
+; База 0x140000000 — стандартная для 64-битных EXE: выше 4 ГБ, совместима с high-entropy ASLR.
+match =1, CONSOLE { format PE64 NX console 6.0 at 0x140000000 }
+match =0, CONSOLE { format PE64 NX GUI 6.0 at 0x140000000 }
 
 entry start
 stack 0x100000, 0x10000
@@ -34,6 +35,8 @@ start:
 ; main — разбор режима запуска. Результат: eax = код завершения.
 ; -----------------------------------------------------------------------------
 proc main uses rbx
+        cmp     [cmdline_error], 0
+        jne     .cmdline_bad
         cmp     [argc], 2
         jb      .usage_ok
 
@@ -66,6 +69,13 @@ proc main uses rbx
         jnz     .get_setting
 
         mov     ecx, 1
+        lea     r8, [s_opt_dump_args]
+        mov     r9d, s_opt_dump_args.len
+        call    cmdline_is
+        test    eax, eax
+        jnz     .dump_args
+
+        mov     ecx, 1
         lea     r8, [s_opt_bench]
         mov     r9d, s_opt_bench.len
         call    cmdline_is
@@ -75,6 +85,40 @@ proc main uses rbx
         slice   s_unknown
         call    sys_write_err
         jmp     .usage_err
+
+  .cmdline_bad:
+        slice   s_cmdline_bad
+        call    sys_write_err
+        mov     eax, EXIT_USAGE
+        ret
+
+  .dump_args:
+        ; --dump-args: argc и все аргументы, по одному в строке «[i] текст»
+        slice   s_argc
+        call    dbg_print_str
+        mov     ecx, [argc]
+        call    dbg_print_int
+        call    dbg_print_nl
+        xor     ebx, ebx
+  .dump_next:
+        cmp     ebx, [argc]
+        jae     .dump_done
+        slice   s_lbracket
+        call    dbg_print_str
+        mov     ecx, ebx
+        call    dbg_print_int
+        slice   s_rbracket
+        call    dbg_print_str
+        mov     ecx, ebx
+        call    cmdline_arg
+        mov     rcx, rax
+        call    dbg_print_str
+        call    dbg_print_nl
+        inc     ebx
+        jmp     .dump_next
+  .dump_done:
+        mov     eax, EXIT_OK
+        ret
 
   .version:
         slice   s_version
@@ -126,7 +170,7 @@ proc main uses rbx
         mov     eax, EXIT_OK
         ret
   .not_found:
-        mov     eax, ERR_NOT_FOUND
+        mov     eax, EXIT_NOT_FOUND
         ret
 
   .bench:
@@ -171,6 +215,7 @@ iglobal
       '  --help                        this help', 10, \
       '  --get-setting <section> <key> print a value from nanoweb.ini', 10, \
       '  --bench noop [N]              measure an empty loop', 10, \
+      '  --dump-args                   print parsed command-line arguments', 10, \
       '  --crash-test                  trigger a crash (crash log test)', 10
   sdef s_unknown,          'nanoweb: unknown option', 10
   sdef s_opt_version,      '--version'
@@ -178,6 +223,11 @@ iglobal
   sdef s_opt_crash,        '--crash-test'
   sdef s_opt_get_setting,  '--get-setting'
   sdef s_opt_bench,        '--bench'
+  sdef s_opt_dump_args,    '--dump-args'
+  sdef s_cmdline_bad,      'nanoweb: command line too long or too many arguments', 10
+  sdef s_argc,             'argc='
+  sdef s_lbracket,         '['
+  sdef s_rbracket,         '] '
   sdef s_bench_name_noop,  'noop'
 endg
 

@@ -5,6 +5,7 @@
 * наличие секции перемещений и отсутствие флага RELOCS_STRIPPED;
 * наличие манифеста (RT_MANIFEST);
 * размер файла < 1 МБ (ARCHITECTURE.md, раздел 14);
+* контрольная сумма, LARGE_ADDRESS_AWARE, база выше 4 ГБ, подсистема 6.0, стек 1 МБ;
 * импорт только из разрешённых DLL (ARCHITECTURE.md, раздел 1).
 """
 import os
@@ -23,6 +24,8 @@ ALLOWED_DLLS = {
 }
 MAX_SIZE = 1 << 20
 RT_MANIFEST = 24
+LARGE_ADDRESS_AWARE = 0x0020
+STACK_RESERVE = 0x100000
 
 
 def check(path: str) -> list[str]:
@@ -34,6 +37,16 @@ def check(path: str) -> list[str]:
             errors.append(f"missing {name}")
     if pe.FILE_HEADER.Characteristics & 0x0001:
         errors.append("IMAGE_FILE_RELOCS_STRIPPED is set")
+    if not pe.FILE_HEADER.Characteristics & LARGE_ADDRESS_AWARE:
+        errors.append("IMAGE_FILE_LARGE_ADDRESS_AWARE is not set")
+    if not pe.verify_checksum():
+        errors.append("wrong PE checksum")
+    if pe.OPTIONAL_HEADER.ImageBase < (1 << 32):
+        errors.append(f"image base {pe.OPTIONAL_HEADER.ImageBase:#x} below 4 GB")
+    if (pe.OPTIONAL_HEADER.MajorSubsystemVersion, pe.OPTIONAL_HEADER.MinorSubsystemVersion) != (6, 0):
+        errors.append("subsystem version is not 6.0")
+    if pe.OPTIONAL_HEADER.SizeOfStackReserve != STACK_RESERVE:
+        errors.append(f"stack reserve {pe.OPTIONAL_HEADER.SizeOfStackReserve:#x} != {STACK_RESERVE:#x}")
     reloc_dir = pe.OPTIONAL_HEADER.DATA_DIRECTORY[pefile.DIRECTORY_ENTRY["IMAGE_DIRECTORY_ENTRY_BASERELOC"]]
     if reloc_dir.VirtualAddress == 0:
         errors.append("no base relocation directory")

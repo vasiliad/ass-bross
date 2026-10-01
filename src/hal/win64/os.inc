@@ -17,7 +17,7 @@ NW_FILE_ATTRIBUTE_NORMAL   = 0x80
 NW_INVALID_HANDLE          = -1
 NW_INVALID_FILE_ATTRIBUTES = 0xFFFFFFFF
 
-CMDLINE_MAX   = 8192                ; байт UTF-8
+CMDLINE_MAX   = 32768 * 3           ; байт UTF-8: до 32К символов UTF-16 по 3 байта
 WPATH_MAX     = 1024                ; символов UTF-16 в пути
 DBG_WBUF_MAX  = 1024                ; символов UTF-16 для OutputDebugStringW
 
@@ -93,12 +93,23 @@ endp
 ; sys_debug_output — строка UTF-8 в OutputDebugStringW (усекается до 1023 символов).
 ;   rcx = указатель, edx = длина
 ; -----------------------------------------------------------------------------
-proc sys_debug_output
-        cmp     edx, DBG_WBUF_MAX - 1
-        jbe     @f
-        mov     edx, DBG_WBUF_MAX - 1
-  @@:
-        invoke  MultiByteToWideChar, NW_CP_UTF8, 0, rcx, rdx, dbg_wbuf, DBG_WBUF_MAX - 1
+proc sys_debug_output uses rbx rsi
+        mov     rbx, rcx
+        mov     esi, edx
+        cmp     esi, DBG_WBUF_MAX - 1
+        jbe     .fits
+        ; усечение по границе символа UTF-8: не резать посреди последовательности
+        mov     esi, DBG_WBUF_MAX - 1
+  .boundary:
+        mov     al, [rbx + rsi]
+        and     al, 0xC0
+        cmp     al, 0x80                ; байт-продолжение 10xxxxxx
+        jne     .fits
+        dec     esi
+        jnz     .boundary
+  .fits:
+        ; аргументы — только через несвободные регистры: invoke заполняет rcx/rdx/r8/r9 по порядку
+        invoke  MultiByteToWideChar, NW_CP_UTF8, 0, rbx, rsi, addr dbg_wbuf, DBG_WBUF_MAX - 1
         lea     rcx, [dbg_wbuf]
         mov     word [rcx + rax*2], 0
         invoke  OutputDebugStringW, rcx
@@ -143,7 +154,7 @@ endp
 ; -----------------------------------------------------------------------------
 proc sys_cmdline_utf8
         invoke  GetCommandLineW
-        invoke  WideCharToMultiByte, NW_CP_UTF8, 0, rax, -1, cmdline_utf8, CMDLINE_MAX - 1, 0, 0
+        invoke  WideCharToMultiByte, NW_CP_UTF8, 0, rax, -1, addr cmdline_utf8, CMDLINE_MAX - 1, 0, 0
         lea     rcx, [cmdline_utf8]
         test    eax, eax
         jz      .empty
@@ -275,14 +286,16 @@ proc sys_exe_dir_path uses rbx rsi rdi
 endp
 
 ; -----------------------------------------------------------------------------
-; sys_appdata_path — путь «%APPDATA%\NanoWeb\имя»; каталог NanoWeb создаётся.
-;   rcx = буфер (WPATH_MAX символов), rdx = имя файла (UTF-16 с нулём)
+; sys_appdata_path — путь «%APPDATA%\NanoWeb\имя».
+;   rcx = буфер (WPATH_MAX символов), rdx = имя файла (UTF-16 с нулём),
+;   r8d = 1 — создать каталог NanoWeb (для записи), 0 — только построить путь.
 ;   Результат: eax = 1 / 0.
 ; -----------------------------------------------------------------------------
-proc sys_appdata_path uses rbx rsi rdi
+proc sys_appdata_path uses rbx rsi rdi r12
         mov     rbx, rcx
         mov     rdi, rdx
-        invoke  GetEnvironmentVariableW, w_appdata, rbx, WPATH_MAX - 64
+        mov     r12d, r8d
+        invoke  GetEnvironmentVariableW, addr w_appdata, rbx, WPATH_MAX - 64
         test    eax, eax
         jz      .fail
         cmp     eax, WPATH_MAX - 64
@@ -293,8 +306,11 @@ proc sys_appdata_path uses rbx rsi rdi
         push    rdx
         push    rdx                     ; пара push сохраняет выравнивание стека
         call    wstr_copy
+        test    r12d, r12d
+        jz      @f
         ; ошибка «каталог уже существует» не важна
         invoke  CreateDirectoryW, rbx, 0
+  @@:
         pop     rsi
         pop     rsi                     ; rsi = имя файла (rdi сохранён вызываемой функцией)
         mov     word [rdi], '\'
@@ -308,6 +324,7 @@ proc sys_appdata_path uses rbx rsi rdi
 endp
 
 iglobal
+  align 2
   w_appdata      du 'APPDATA', 0
   w_nanoweb_dir  du '\NanoWeb', 0
 endg

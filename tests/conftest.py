@@ -33,17 +33,27 @@ def _launcher():
 
 LAUNCHER = _launcher()
 needs_runtime = pytest.mark.skipif(LAUNCHER is None, reason="нет Windows или Wine для запуска .exe")
+needs_windows = pytest.mark.skipif(sys.platform != "win32", reason="нужна настоящая Windows")
 
 
 class Runner:
     def __init__(self, exe: Path):
         self.exe = exe
 
-    def __call__(self, *args, cwd=None, timeout=30):
+    def __call__(self, *args, cwd=None, timeout=30, appdata=None):
         env = dict(os.environ, WINEDEBUG="-all")
+        if appdata is not None:
+            env["APPDATA"] = str(appdata)
         proc = subprocess.run(LAUNCHER + [str(self.exe), *args], capture_output=True,
                               cwd=cwd, env=env, timeout=timeout)
         return proc
+
+    def raw(self, command_tail: str, timeout=30):
+        """Запуск с командной строкой «как есть» — для проверки правил разбора кавычек.
+        Только Windows: под Wine строка всё равно проходит через разбор на стороне Linux."""
+        env = dict(os.environ)
+        return subprocess.run(f'"{self.exe}" {command_tail}', capture_output=True, env=env,
+                              timeout=timeout)
 
 
 @pytest.fixture(params=["nanoweb-con.exe", "nanoweb.exe"])

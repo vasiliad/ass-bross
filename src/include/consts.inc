@@ -13,6 +13,7 @@ WM_NET              = WM_APP_BASE + 1
 EXIT_OK             = 0
 EXIT_USAGE          = 2
 EXIT_ERROR          = 3
+EXIT_NOT_FOUND      = 4
 
 ; --- Коды ошибок (last_error) -------------------------------------------------
 ERR_NONE            = 0

@@ -31,7 +31,7 @@ jobs:
           "INCLUDE=$env:RUNNER_TEMP\fasm\INCLUDE" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
 
       - name: Install Python packages
-        run: python -m pip install pytest pefile
+        run: python -m pip install pytest==9.1.1 pefile==2024.8.26
 
       - name: Build
         shell: cmd
