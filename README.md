@@ -11,7 +11,7 @@
 * `docs/MEMORY_MODEL.md` — арены памяти, кэш пикселей и байтовые структуры (ARENA, DOC_CTX, DOM_NODE, ATTR, VIS_RULE, SEL_PART, IMAGE, FETCH, LINE, FRAGMENT, HISTORY_ENTRY).
 * `docs/CONVENTIONS.md` — соглашения по коду: структура репозитория, Microsoft x64 ABI, ошибки, именование, правило слоёв.
 * `docs/TOOLCHAIN.md` — инструменты: сборка, разработка на Linux через Wine, отладка, тесты, измерения, CI.
-* `ROADMAP.md` — вехи MVP (M0–M5) и направления после MVP (формы, Marginalia, история и вкладки, улучшения отображения).
+* `ROADMAP.md` — вехи MVP (M0–M5) и направления после MVP (формы, Marginalia, закладки и вкладки, улучшения отображения).
 
 ## Сборка
 Пока не применимо — появится в M0.

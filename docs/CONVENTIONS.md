@@ -9,7 +9,7 @@ nanoweb/
 │   ├── include/
 │   │   ├── structs.inc       ; все struct из MEMORY_MODEL.md
 │   │   └── consts.inc        ; TAG_*, ATTR_*, ROLE_*, CS_*, лимиты (LIM_*), коды ошибок, WM_NET
-│   ├── hal/win64/            ; mem.inc, net.inc (WinHTTP), gui.inc, font.inc, image.inc (WIC), file.inc, sys.inc
+│   ├── hal/win64/            ; mem.inc, net.inc (WinHTTP), gui.inc, font.inc, image.inc (WIC), file.inc, os.inc
 │   ├── core/                 ; arena.inc, eventloop.inc, url.inc, encoding.inc, settings.inc, history.inc
 │   ├── engine/               ; html_tokenizer.inc, dom.inc, visibility.inc, images.inc, reader_layout.inc
 │   ├── paint/                ; painter.inc
@@ -85,7 +85,7 @@ ends
 ## 6. Правило слоёв
 * `invoke` WinAPI разрешён **только** в `src/hal/`.
 * `engine/` не зависит от `paint/` и `ui/`; `core/` не зависит от `engine/`.
-* Единственный код вне главного потока — колбэк WinHTTP в `hal/win64/net.inc`: он пишет только поля `Bytes_Read`, `Win_Error`, `Secure_Flags` своего слота `FETCH` и вызывает `PostMessageW`. Данные движка (DOM, арены, раскладку) он не трогает.
+* Единственный код вне главного потока — колбэк WinHTTP в `hal/win64/net.inc`: он пишет только поля `Bytes_Read`, `Win_Error`, `Secure_Flags` своего слота `FETCH` (и `State = Закрыт` через `lock xchg` при `HANDLE_CLOSING`) и вызывает `PostMessageW`. Данные движка (DOM, арены, раскладку) он не трогает.
 * COM-вызовы WIC — через макросы `interface` / `comcall` из пакета FASM (вызов по таблице виртуальных методов); `CoInitializeEx(COINIT_APARTMENTTHREADED)` в главном потоке при первой картинке.
 * Строки — срезы `ptr + len` (см. `MEMORY_MODEL.md`, раздел 2), UTF-8 внутри движка.
 
@@ -94,6 +94,7 @@ ends
 * Каждое чтение входных данных проверяет границу среза; числа из входа — с насыщением; произведения размеров проверяются до выделения памяти.
 * Все пределы — именованные константы `LIM_*` в `consts.inc` (таблица — `ARCHITECTURE.md`, раздел 12).
 * Новый разборщик входит в репозиторий вместе с фаззинг-тестом.
+* Журнал сбоев — только через `SetUnhandledExceptionFilter`; код фильтра не выделяет память и не вызывает COM.
 
 ## 8. Комментарии
 * Каждая функция начинается с шапки: назначение, аргументы, результат, изменяемые регистры (если отличаются от стандарта).

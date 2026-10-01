@@ -33,8 +33,8 @@ FASM для Linux собирает Windows-исполняемые файлы т�
 Отладочная сборка (`build.bat debug`) использует подсистему `console`: вывод `--dump-*` и `dbg_print_*` сразу виден в терминале. Релизная — `GUI`.
 
 ## 4. Тестирование
-* **Golden-тесты:** `nanoweb.exe --dump-dom|--dump-hidden|--dump-layout --font-mock file.html` → сравнение с `tests/golden/*.txt`. Обновление эталонов: `pytest --update-golden` (изменения эталонов проверяются глазами в diff).
-* **Корпус реальных страниц:** `tests/pages/` — сохранённые копии сайтов из тестового набора (с картинками), для каждой — эталоны `--dump-dom`, `--dump-hidden`, `--dump-layout`.
+* **Golden-тесты:** `nanoweb.exe --dump-dom|--dump-vis|--dump-layout --font-mock file.html` → сравнение с `tests/golden/*.txt`. Обновление эталонов: `pytest --update-golden` (изменения эталонов проверяются глазами в diff).
+* **Корпус реальных страниц:** `tests/pages/` — сохранённые копии сайтов из тестового набора (с картинками), для каждой — эталоны `--dump-dom`, `--dump-vis`, `--dump-layout`.
 * **Потоковый разбор:** каждый golden-тест `--dump-dom` прогоняется и с `--chunk 1`, `--chunk 7`, `--chunk 4096` — результат обязан совпадать.
 * **Сеть:** `tests/server/` — Python-сервер с ответами на крайние случаи (редиректы, редирект https→http, обрыв соединения, медленная отдача, большие и битые картинки, windows-1251 без `charset`, `text/plain`, PDF) и стресс-тест быстрой навигации.
 * **Фаззинг** — с появления каждого разборщика (M1 — HTML, M2 — CSS, M3 — картинки): мутационный фаззер на Python в `tests/fuzz/`, найденные падения сохраняются как регрессионные тесты. WinAFL — по мере необходимости.
@@ -51,7 +51,7 @@ FASM для Linux собирает Windows-исполняемые файлы т�
 GitHub Actions, раннер `windows-latest`:
 1. Скачать FASM 1.73.
 2. `build.bat` и `build.bat debug`.
-3. Проверка заголовка PE: флаги `HIGH_ENTROPY_VA`, `DYNAMIC_BASE`, `NX_COMPAT`, наличие перемещений (Python-скрипт `tools/check_pe.py`).
+3. Установка флагов ASLR в заголовке PE (`tools/patch_pe.py` — у FASM нет директив для `DYNAMIC_BASE` и `HIGH_ENTROPY_VA`) и проверка флагов `HIGH_ENTROPY_VA`, `DYNAMIC_BASE`, `NX_COMPAT` и наличия перемещений (`tools/check_pe.py`). `patch_pe.py` вызывается и из `build.bat`/`Makefile`.
 4. `pytest` (golden-тесты с `--font-mock`, тесты порций, короткий прогон фаззера).
 5. Опубликовать `nanoweb.exe` как артефакт сборки и проверить KPI размера (< 1 МБ).
 
