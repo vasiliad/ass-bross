@@ -85,7 +85,7 @@ ends
 ## 6. Правило слоёв
 * `invoke` WinAPI разрешён **только** в `src/hal/`.
 * `engine/` не зависит от `paint/` и `ui/`; `core/` не зависит от `engine/`.
-* Единственный код вне главного потока — колбэк WinHTTP в `hal/win64/net.inc`: он пишет только поля `Bytes_Read`, `Win_Error`, `Secure_Flags` своего слота `FETCH` (и `State = Закрыт` через `lock xchg` при `HANDLE_CLOSING`) и вызывает `PostMessageW`. Данные движка (DOM, арены, раскладку) он не трогает.
+* Единственный код вне главного потока — колбэк WinHTTP в `hal/win64/net.inc`: он пишет только поля `Bytes_Read`, `Win_Error`, `Secure_Flags`, `Closed` своего слота `FETCH` и вызывает `PostMessageW`. Поле `FETCH.State` и все остальные поля слота пишет только главный поток — это правило проверяется на ревью кода. Данные движка (DOM, арены, раскладку) он не трогает.
 * COM-вызовы WIC — через макросы `interface` / `comcall` из пакета FASM (вызов по таблице виртуальных методов); `CoInitializeEx(COINIT_APARTMENTTHREADED)` в главном потоке при первой картинке.
 * Строки — срезы `ptr + len` (см. `MEMORY_MODEL.md`, раздел 2), UTF-8 внутри движка.
 
