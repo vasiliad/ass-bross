@@ -15,7 +15,7 @@
 * Структура каталогов и сборка (`build.bat` для Windows, `Makefile` для сборки на Linux + запуск через Wine).
 * **Заголовок PE:** `format PE64 NX GUI 6.0`, секция перемещений, флаги ASLR (`tools/patch_pe.py` после сборки; проверить и вариант с `store`), стек 1 МБ, манифест (Per-Monitor V2 DPI, `comctl32` v6) — `ARCHITECTURE.md`, раздел 12.
 * `src/include/structs.inc` — определения всех структур из `MEMORY_MODEL.md` с проверкой размеров при сборке.
-* Отладочный вывод: `dbg_print_str`, `dbg_print_int`, `dbg_print_hex` (stdout + `OutputDebugStringW`); фильтр необработанных исключений (`SetUnhandledExceptionFilter`) с записью `crash.log`.
+* Отладочный вывод: `dbg_print_str`, `dbg_print_int`, `dbg_print_hex` (stdout + `OutputDebugStringW`); векторный обработчик сбоев (фатальные коды, адрес внутри образа) с записью `crash.log`.
 * Разбор аргументов командной строки (собственный, по `GetCommandLineW`), чтение `nanoweb.ini`.
 * Тестовый стенд: pytest запускает `nanoweb.exe` в режимах дампа и сравнивает вывод с эталонными файлами (golden tests).
 * Бенчмарк-стенд: режим `--bench`, корпус сохранённых реальных страниц в `tests/bench/`, таблица результатов по коммитам.

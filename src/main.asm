@@ -194,6 +194,7 @@ section '.idata' import data readable writeable
 library kernel32, 'KERNEL32.DLL'
 
 import kernel32, \
+       AddVectoredExceptionHandler, 'AddVectoredExceptionHandler', \
        CloseHandle,                 'CloseHandle', \
        CreateDirectoryW,            'CreateDirectoryW', \
        CreateFileW,                 'CreateFileW', \
@@ -202,6 +203,7 @@ import kernel32, \
        GetEnvironmentVariableW,     'GetEnvironmentVariableW', \
        GetFileAttributesW,          'GetFileAttributesW', \
        GetModuleFileNameW,          'GetModuleFileNameW', \
+       GetModuleHandleW,            'GetModuleHandleW', \
        GetStdHandle,                'GetStdHandle', \
        MultiByteToWideChar,         'MultiByteToWideChar', \
        OutputDebugStringW,          'OutputDebugStringW', \
@@ -209,7 +211,7 @@ import kernel32, \
        QueryPerformanceFrequency,   'QueryPerformanceFrequency', \
        ReadFile,                    'ReadFile', \
        SetConsoleOutputCP,          'SetConsoleOutputCP', \
-       SetUnhandledExceptionFilter, 'SetUnhandledExceptionFilter', \
+       SetThreadStackGuarantee,     'SetThreadStackGuarantee', \
        TerminateProcess,            'TerminateProcess', \
        WideCharToMultiByte,         'WideCharToMultiByte', \
        WriteFile,                   'WriteFile'
