@@ -7,8 +7,8 @@
 Этап проектирования. Следующая веха — **M0: Инфраструктура** (см. `ROADMAP.md`).
 
 ## Структура документации
-* `docs/ARCHITECTURE.md` — архитектура (SAD): слои, поток данных, Event Loop, сеть через WinHTTP, HTML и роли элементов, правила скрытия, режим чтения, картинки, скорость разбора, поиск, KPI, журнал решений.
-* `docs/MEMORY_MODEL.md` — арены памяти, кэш пикселей и байтовые структуры (DOM_NODE, ATTR, HIDE_RULE, SEL_PART, IMAGE, LINE, FRAGMENT).
+* `docs/ARCHITECTURE.md` — архитектура (SAD): слои, поток данных, Event Loop, сеть через WinHTTP, HTML и роли элементов, видимость элементов, режим чтения, картинки, интерфейс, поиск, скорость разбора, безопасность, KPI, журнал решений.
+* `docs/MEMORY_MODEL.md` — арены памяти, кэш пикселей и байтовые структуры (ARENA, DOC_CTX, DOM_NODE, ATTR, VIS_RULE, SEL_PART, IMAGE, FETCH, LINE, FRAGMENT, HISTORY_ENTRY).
 * `docs/CONVENTIONS.md` — соглашения по коду: структура репозитория, Microsoft x64 ABI, ошибки, именование, правило слоёв.
 * `docs/TOOLCHAIN.md` — инструменты: сборка, разработка на Linux через Wine, отладка, тесты, измерения, CI.
 * `ROADMAP.md` — вехи MVP (M0–M5) и направления после MVP (формы, Marginalia, история и вкладки, улучшения отображения).
