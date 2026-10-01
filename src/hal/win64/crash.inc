@@ -128,6 +128,12 @@ proc crash_handler uses rbx rsi rdi r12 r13
         lea     rsi, [rsi + r13*4]
         mov     ecx, 4
         call    put_bytes
+  .trim:
+        cmp     byte [rdi - 1], ' '     ; имена дополнены пробелами до 4 символов
+        jne     .trimmed
+        dec     rdi
+        jmp     .trim
+  .trimmed:
         mov     byte [rdi], '='
         inc     rdi
         mov     rax, [r12 + CTX_RAX + r13*8]
@@ -139,12 +145,14 @@ proc crash_handler uses rbx rsi rdi r12 r13
         jnz     @f
         mov     al, 10
   @@:
+        cmp     r13d, CRASH_REG_COUNT
+        jne     @f
+        mov     al, 10                  ; последняя строка
+  @@:
         mov     [rdi], al
         inc     rdi
         cmp     r13d, CRASH_REG_COUNT
         jb      .reg
-        mov     byte [rdi], 10
-        inc     rdi
         ; TODO(M4): URL текущей страницы из cur_doc
 
         lea     rsi, [crash_buf]
