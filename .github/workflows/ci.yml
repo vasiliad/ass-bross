@@ -10,6 +10,9 @@ jobs:
     runs-on: windows-latest
     env:
       FASM_VERSION: "17335"
+      # flatassembler.net не согласует TLS со SChannel раннера, поэтому архив
+      # скачивается по HTTP и проверяется по SHA-256 (снят с копии, скачанной по HTTPS).
+      FASM_SHA256: "8ef871b369638f63d2df475a64e9f574da06b601db5a3fcb8c12654b7bcf5e81"
     steps:
       - uses: actions/checkout@v4
 
@@ -20,7 +23,9 @@ jobs:
       - name: Install FASM
         shell: pwsh
         run: |
-          Invoke-WebRequest "https://flatassembler.net/fasmw$env:FASM_VERSION.zip" -OutFile fasm.zip
+          Invoke-WebRequest "http://flatassembler.net/fasmw$env:FASM_VERSION.zip" -OutFile fasm.zip
+          $hash = (Get-FileHash fasm.zip -Algorithm SHA256).Hash.ToLower()
+          if ($hash -ne $env:FASM_SHA256) { throw "FASM archive hash mismatch: $hash" }
           Expand-Archive fasm.zip -DestinationPath "$env:RUNNER_TEMP\fasm"
           "$env:RUNNER_TEMP\fasm" | Out-File -Append -Encoding utf8 $env:GITHUB_PATH
           "INCLUDE=$env:RUNNER_TEMP\fasm\INCLUDE" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
