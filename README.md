@@ -7,7 +7,7 @@
 Этап проектирования. Следующая веха — **M0: Инфраструктура** (см. `ROADMAP.md`).
 
 ## Структура документации
-* `docs/ARCHITECTURE.md` — архитектура (SAD): слои HAL / Core / Web Engine / Presentation, поток данных, Event Loop, NetClient, поддерживаемое подмножество HTML/CSS, KPI, журнал решений.
+* `docs/ARCHITECTURE.md` — архитектура (SAD): слои HAL / Core / Web Engine / Presentation, поток данных, Event Loop, NetClient, поддерживаемое подмножество HTML/CSS, KPI, скорость разбора, поиск (DuckDuckGo Lite, Marginalia, Ctrl+F), журнал решений.
 * `docs/MEMORY_MODEL.md` — арены памяти и байтовые структуры данных (DOM_NODE, ATTR, COMPUTED_STYLE, CSSOM, RENDER_BOX, TEXT_FRAGMENT).
 * `docs/CONVENTIONS.md` — соглашения по коду: структура репозитория, Microsoft x64 ABI, ошибки, именование, правило слоёв.
 * `docs/TOOLCHAIN.md` — инструменты: сборка, разработка на Linux через Wine, отладка, тесты, измерения, CI.
