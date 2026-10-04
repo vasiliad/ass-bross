@@ -59,3 +59,15 @@ proc dbg_print_hex uses rdi
         call    dbg_print_str
         ret
 endp
+
+; dbg_print_char - вывести один символ из eax
+proc dbg_print_char
+  locals
+    c db ?
+  endl
+        mov     [c], al
+        lea     rcx, [c]
+        mov     edx, 1
+        call    dbg_print_str
+        ret
+endp
