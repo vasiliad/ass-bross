@@ -20,7 +20,7 @@ REQUIRED_FLAGS = {
 }
 ALLOWED_DLLS = {
     "kernel32.dll", "user32.dll", "gdi32.dll", "advapi32.dll", "shell32.dll",
-    "winhttp.dll", "ole32.dll", "windowscodecs.dll",
+    "wininet.dll", "winhttp.dll", "ole32.dll", "windowscodecs.dll",
 }
 MAX_SIZE = 1 << 20
 RT_MANIFEST = 24
