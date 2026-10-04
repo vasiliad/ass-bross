@@ -182,6 +182,9 @@ proc main uses rbx
         ret
 
   .usage_ok:
+        match =0, CONSOLE {
+            call    ui_show
+        }
         slice   s_usage
         call    dbg_print_str
         mov     eax, EXIT_OK
@@ -310,6 +313,7 @@ include 'net/http.inc'
 include 'engine/html.inc'
 include 'engine/dom.inc'
 include 'engine/extract.inc'
+include 'ui.inc'
 include 'engine/dump.inc'
 include 'debug/bench.inc'
 include 'debug/selftest.inc'
@@ -365,7 +369,9 @@ IncludeUGlobals
 section '.idata' import data readable writeable
 
 library kernel32, 'KERNEL32.DLL', \
-        wininet,  'WININET.DLL'
+        wininet,  'WININET.DLL', \
+        user32,   'USER32.DLL', \
+        shell32,  'SHELL32.DLL'
 
 import kernel32, \
        AddVectoredExceptionHandler, 'AddVectoredExceptionHandler', \
@@ -382,6 +388,7 @@ import kernel32, \
        GetStdHandle,                'GetStdHandle', \
        MultiByteToWideChar,         'MultiByteToWideChar', \
        OutputDebugStringW,          'OutputDebugStringW', \
+       OutputDebugStringA,          'OutputDebugStringA', \
        QueryPerformanceCounter,     'QueryPerformanceCounter', \
        QueryPerformanceFrequency,   'QueryPerformanceFrequency', \
        ReadFile,                    'ReadFile', \
@@ -398,6 +405,21 @@ import wininet, \
        InternetOpenUrlA,            'InternetOpenUrlA', \
        InternetReadFile,            'InternetReadFile', \
        InternetCloseHandle,         'InternetCloseHandle'
+
+import user32, \
+       CreateWindowExA,             'CreateWindowExA', \
+       DefWindowProcA,              'DefWindowProcA', \
+       DispatchMessageA,            'DispatchMessageA', \
+       GetMessageA,                 'GetMessageA', \
+       LoadCursorA,                 'LoadCursorA', \
+       PostQuitMessage,             'PostQuitMessage', \
+       RegisterClassExA,            'RegisterClassExA', \
+       SendMessageA,                'SendMessageA', \
+       TranslateMessage,            'TranslateMessage'
+
+import shell32, \
+       SHBrowseForFolderA,          'SHBrowseForFolderA', \
+       SHGetPathFromIDListA,        'SHGetPathFromIDListA'
 
 ; =============================================================================
 section '.rsrc' resource data readable
