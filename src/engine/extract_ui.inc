@@ -217,13 +217,11 @@ proc ui_task_browse uses rbx rsi rdi r12 r13 r14 r15
         xor     edx, edx
         mov     r8, [ext_ptr]
         mov     r9, [ext_len]
-        push    0
-        push    0
         push    1024*1024
         push    r12
         sub     rsp, 32
         call    [MultiByteToWideChar]
-        add     rsp, 64
+        add     rsp, 48
         
         mov     rcx, [hwnd_browser]
         mov     r8, r12
