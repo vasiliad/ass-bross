@@ -431,6 +431,7 @@ import user32, \
        SendMessageW,                'SendMessageW', \
        GetWindowTextA,              'GetWindowTextA', \
        GetWindowTextW,              'GetWindowTextW', \
+       MessageBoxW,                 'MessageBoxW', \
        TranslateMessage,            'TranslateMessage'
 
 import shell32, \

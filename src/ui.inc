@@ -20,6 +20,11 @@ BIF_USENEWUI        = 0x0040
 IDC_ARROW           = 32512
 
 iglobal
+  msg_no_folder du 'Please select an output folder first!',0
+  msg_success   du 'Extraction completed successfully! Saved to result.txt',0
+  msg_err       du 'Extraction failed! Check URL or network connection.',0
+  msg_title_ok  du 'Success',0
+  msg_title_err du 'Error',0
   s_ui_class      db 'NanoWebUI', 0
   s_ui_title      db 'NanoWeb Universal Extractor', 0
   
@@ -215,6 +220,22 @@ proc ui_window_proc hwnd, wmsg, wparam, lparam
         mov     r15, rax
         dec     r15
         
+        ; Check if szPath is empty
+        lea     rax, [szPath]
+        cmp     word [rax], 0
+        jne     .do_extract
+        
+        ; Show error if empty
+        mov     rcx, [hwnd]
+        lea     rdx, [msg_no_folder]
+        lea     r8, [msg_title_err]
+        mov     r9d, 0x10 ; MB_ICONERROR
+        sub     rsp, 32
+        call    [MessageBoxW]
+        add     rsp, 32
+        jmp     .done
+        
+  .do_extract:
         ; Call engine
         mov     rcx, r12
         mov     rdx, r13
@@ -222,6 +243,26 @@ proc ui_window_proc hwnd, wmsg, wparam, lparam
         mov     r9, r15
         call    ui_task_extract
         
+        cmp     eax, 0 ; EXIT_OK
+        jne     .show_err
+        
+        mov     rcx, [hwnd]
+        lea     rdx, [msg_success]
+        lea     r8, [msg_title_ok]
+        mov     r9d, 0x40 ; MB_ICONINFORMATION
+        sub     rsp, 32
+        call    [MessageBoxW]
+        add     rsp, 32
+        jmp     .done
+        
+  .show_err:
+        mov     rcx, [hwnd]
+        lea     rdx, [msg_err]
+        lea     r8, [msg_title_err]
+        mov     r9d, 0x10 ; MB_ICONERROR
+        sub     rsp, 32
+        call    [MessageBoxW]
+        add     rsp, 32
         jmp     .done
         
   .wm_destroy:
