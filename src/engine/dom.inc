@@ -14,6 +14,7 @@ struct DOM_NODE
   nodeFirstChild dq ?
   nodeLastChild dq ?
   nodeNextSibling dq ?
+  Token       dq ?
 ends
 
 ; -----------------------------------------------------------------------------
@@ -68,7 +69,16 @@ proc dom_build uses rbx rsi rdi r12 r13 r14 r15
         
         cmp     eax, HTML_TOK_COMMENT
         je      .handle_comment
+
+        cmp     eax, HTML_TOK_ATTR
+        je      .handle_attr
         
+        jmp     .next_tok
+
+
+  .handle_attr:
+        ; Пока просто игнорируем атрибуты в самом DOM дереве
+        ; (они лежат в массиве токенов сразу после TAG_OPEN).
         jmp     .next_tok
 
   .handle_open:

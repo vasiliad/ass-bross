@@ -8,6 +8,7 @@ HTML_TOK_TEXT       = 1
 HTML_TOK_TAG_OPEN   = 2
 HTML_TOK_TAG_CLOSE  = 3
 HTML_TOK_COMMENT    = 4
+HTML_TOK_ATTR       = 5
 
 struct HTML_TOKEN
   Type   dd ?           ; HTML_TOK_*
@@ -109,16 +110,161 @@ proc html_tokenize uses rbx rsi rdi r12 r13 r14 r15
         mov     r13, rsi
         sub     r13, r12
         
-        ; Пропускаем до '>'
-  .skip_to_gt:
+
+        ; Пропускаем пробелы после имени тега
+  .skip_space_tag:
         cmp     rsi, [text_end]
         jae     .emit_open
-        cmp     byte [rsi], '>'
-        je      .got_gt
+        mov     al, [rsi]
+        cmp     al, ' '
+        je      .space_tag
+        cmp     al, 9
+        je      .space_tag
+        cmp     al, 10
+        je      .space_tag
+        cmp     al, 13
+        je      .space_tag
+        jmp     .attr_loop
+  .space_tag:
         inc     rsi
-        jmp     .skip_to_gt
+        jmp     .skip_space_tag
+
+  .attr_loop:
+        cmp     rsi, [text_end]
+        jae     .emit_open
+        mov     al, [rsi]
+        cmp     al, '>'
+        je      .got_gt
+        cmp     al, '/'
+        je      .got_slash
+        
+        ; Парсим имя атрибута
+        mov     r12, rsi
+  .attr_name_loop:
+        cmp     rsi, [text_end]
+        jae     .attr_name_done
+        mov     al, [rsi]
+        cmp     al, '='
+        je      .attr_name_done
+        cmp     al, ' '
+        je      .attr_name_done
+        cmp     al, '>'
+        je      .attr_name_done
+        inc     rsi
+        jmp     .attr_name_loop
+  .attr_name_done:
+        mov     r13, rsi
+        sub     r13, r12
+        jz      .attr_skip_char ; если имя пустое, пропустим символ
+        
+        ; Выделяем токен атрибута (имя)
+        mov     rcx, [arena_ptr]
+        mov     edx, sizeof.HTML_TOKEN
+        call    arena_alloc
+        test    rax, rax
+        jz      .oom
+        mov     r15, rax
+        mov     dword [r15 + HTML_TOKEN.Type], HTML_TOK_ATTR
+        mov     dword [r15 + HTML_TOKEN.Len], r13d
+        mov     [r15 + HTML_TOKEN.Ptr], r12
+        
+        ; Проверяем есть ли '='
+  .attr_val_search:
+        cmp     rsi, [text_end]
+        jae     .emit_open
+        mov     al, [rsi]
+        cmp     al, '='
+        je      .attr_has_val
+        cmp     al, ' '
+        je      .attr_val_search_space
+        jmp     .attr_loop ; нет значения, следующий атрибут
+  .attr_val_search_space:
+        inc     rsi
+        jmp     .attr_val_search
+
+  .attr_skip_char:
+        inc     rsi
+        jmp     .attr_loop
+
+  .attr_has_val:
+        inc     rsi             ; пропускаем '='
+        ; Пропускаем пробелы
+  .attr_val_space:
+        cmp     rsi, [text_end]
+        jae     .emit_open
+        mov     al, [rsi]
+        cmp     al, ' '
+        jne     .attr_val_start
+        inc     rsi
+        jmp     .attr_val_space
+        
+  .attr_val_start:
+        mov     r12, rsi
+        mov     bl, 0           ; кавычка
+        mov     al, [rsi]
+        cmp     al, '"'
+        je      .attr_quote
+        cmp     al, "'"
+        je      .attr_quote
+        jmp     .attr_val_loop
+  .attr_quote:
+        mov     bl, al
+        inc     rsi
+        mov     r12, rsi
+        
+  .attr_val_loop:
+        cmp     rsi, [text_end]
+        jae     .attr_val_done
+        mov     al, [rsi]
+        test    bl, bl
+        jnz     .attr_val_q
+        ; Без кавычек: до пробела или '>'
+        cmp     al, ' '
+        je      .attr_val_done
+        cmp     al, '>'
+        je      .attr_val_done
+        inc     rsi
+        jmp     .attr_val_loop
+  .attr_val_q:
+        ; В кавычках: до кавычки
+        cmp     al, bl
+        je      .attr_val_done_q
+        inc     rsi
+        jmp     .attr_val_loop
+        
+  .attr_val_done_q:
+        mov     r13, rsi
+        sub     r13, r12
+        inc     rsi             ; пропускаем закрывающую кавычку
+        jmp     .emit_attr_val
+        
+  .attr_val_done:
+        mov     r13, rsi
+        sub     r13, r12
+        
+  .emit_attr_val:
+        ; Мы записываем значение атрибута в тот же токен (но у нас нет полей ValPtr, ValLen).
+        ; Поэтому просто сделаем хак: значение атрибута будет следующим токеном TEXT!
+        ; Но для чистоты лучше, чтобы парсер DOM знал, что это значение.
+        ; Оставим его как TEXT, а в DOM парсере атрибут без значения получит 0, а с TEXT - значение.
+        mov     rcx, [arena_ptr]
+        mov     edx, sizeof.HTML_TOKEN
+        call    arena_alloc
+        test    rax, rax
+        jz      .oom
+        mov     dword [rax + HTML_TOKEN.Type], HTML_TOK_TEXT
+        mov     dword [rax + HTML_TOKEN.Len], r13d
+        mov     [rax + HTML_TOKEN.Ptr], r12
+        jmp     .attr_loop
+
   .got_gt:
         inc     rsi
+        jmp     .emit_open
+
+  .got_slash:
+        inc     rsi
+        jmp     .attr_loop
+
         
   .emit_open:
         mov     rcx, [arena_ptr]

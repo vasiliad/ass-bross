@@ -112,6 +112,23 @@ proc main uses rbx
         test    eax, eax
         jnz     .dump_dom
 
+
+        lea     r8, [s_opt_extract]
+        mov     r9d, s_opt_extract.len
+        call    cmdline_is
+        test    eax, eax
+        jnz     .cmd_extract
+
+  .cmd_extract:
+        cmp     [argc], 6
+        jne     .usage_err
+        
+        ; 2 = url, 3 = attr name, 4 = attr val, 5 = out file
+        mov     ecx, 2
+        call    cmdline_arg
+        ; Дальше нужен вызов функции cmd_extract в engine/dump.inc
+        jmp     .dump_done
+
   .dump_dom:
         cmp     [argc], 3
         jne     .usage_err
@@ -289,8 +306,10 @@ include 'hal/win64/mem.inc'
 include 'core/arena.inc'
 include 'core/file.inc'
 include 'core/decode.inc'
+include 'net/http.inc'
 include 'engine/html.inc'
 include 'engine/dom.inc'
+include 'engine/extract.inc'
 include 'engine/dump.inc'
 include 'debug/bench.inc'
 include 'debug/selftest.inc'
@@ -326,6 +345,7 @@ iglobal
   sdef s_st_name_html,      'html'
   sdef s_opt_dump_tokens,    '--dump-tokens'
   sdef s_opt_dump_dom,       '--dump-dom'
+  sdef s_opt_extract,        '--extract'
   sdef s_test_html,         '<html> <body>Hello</body></html>'
   sdef s_cmdline_bad,      'nanoweb: command line too long or too many arguments', 10
   sdef s_argc,             'argc='
@@ -344,7 +364,8 @@ IncludeUGlobals
 ; =============================================================================
 section '.idata' import data readable writeable
 
-library kernel32, 'KERNEL32.DLL'
+library kernel32, 'KERNEL32.DLL', \
+        wininet,  'WININET.DLL'
 
 import kernel32, \
        AddVectoredExceptionHandler, 'AddVectoredExceptionHandler', \
@@ -371,6 +392,12 @@ import kernel32, \
        VirtualFree,                 'VirtualFree', \
        WideCharToMultiByte,         'WideCharToMultiByte', \
        WriteFile,                   'WriteFile'
+
+import wininet, \
+       InternetOpenA,               'InternetOpenA', \
+       InternetOpenUrlA,            'InternetOpenUrlA', \
+       InternetReadFile,            'InternetReadFile', \
+       InternetCloseHandle,         'InternetCloseHandle'
 
 ; =============================================================================
 section '.rsrc' resource data readable
