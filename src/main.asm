@@ -82,6 +82,13 @@ proc main uses rbx
         test    eax, eax
         jnz     .bench
 
+        mov     ecx, 1
+        lea     r8, [s_opt_selftest]
+        mov     r9d, s_opt_selftest.len
+        call    cmdline_is
+        test    eax, eax
+        jnz     .selftest
+
         slice   s_unknown
         call    sys_write_err
         jmp     .usage_err
@@ -196,6 +203,23 @@ proc main uses rbx
         call    bench_noop
         mov     eax, EXIT_OK
         ret
+
+  .selftest:
+        ; --selftest arena
+        cmp     [argc], 3
+        jne     .usage_err
+        mov     ecx, 2
+        lea     r8, [s_st_name_arena]
+        mov     r9d, s_st_name_arena.len
+        call    cmdline_is
+        test    eax, eax
+        jz      .usage_err
+        call    selftest_arena
+        test    eax, eax
+        mov     eax, EXIT_OK
+        mov     ecx, EXIT_ERROR
+        cmovz   eax, ecx
+        ret
 endp
 
 ; --- Модули -------------------------------------------------------------------
@@ -205,7 +229,10 @@ include 'hal/win64/crash.inc'
 include 'core/cmdline.inc'
 include 'core/settings.inc'
 include 'debug/dbg_print.inc'
+include 'hal/win64/mem.inc'
+include 'core/arena.inc'
 include 'debug/bench.inc'
+include 'debug/selftest.inc'
 
 iglobal
   ; Код адресуется только RIP-относительно, и перемещений в нём нет. Но Windows не
@@ -221,7 +248,8 @@ iglobal
       '  --get-setting <section> <key> print a value from nanoweb.ini', 10, \
       '  --bench noop [N]              measure an empty loop', 10, \
       '  --dump-args                   print parsed command-line arguments', 10, \
-      '  --crash-test                  trigger a crash (crash log test)', 10
+      '  --crash-test                  trigger a crash (crash log test)', 10, \
+      '  --selftest arena              run built-in arena self-test', 10
   sdef s_unknown,          'nanoweb: unknown option', 10
   sdef s_opt_version,      '--version'
   sdef s_opt_help,         '--help'
@@ -229,6 +257,8 @@ iglobal
   sdef s_opt_get_setting,  '--get-setting'
   sdef s_opt_bench,        '--bench'
   sdef s_opt_dump_args,    '--dump-args'
+  sdef s_opt_selftest,     '--selftest'
+  sdef s_st_name_arena,    'arena'
   sdef s_cmdline_bad,      'nanoweb: command line too long or too many arguments', 10
   sdef s_argc,             'argc='
   sdef s_lbracket,         '['
@@ -268,6 +298,8 @@ import kernel32, \
        SetConsoleOutputCP,          'SetConsoleOutputCP', \
        SetThreadStackGuarantee,     'SetThreadStackGuarantee', \
        TerminateProcess,            'TerminateProcess', \
+       VirtualAlloc,                'VirtualAlloc', \
+       VirtualFree,                 'VirtualFree', \
        WideCharToMultiByte,         'WideCharToMultiByte', \
        WriteFile,                   'WriteFile'
 

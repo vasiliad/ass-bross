@@ -24,6 +24,8 @@
   * *Итог:* exe 8,7 КБ; 22 теста на Windows в CI (версия, справка, разбор аргументов, `nanoweb.ini` в UTF-8 с BOM и CRLF, бенчмарк, журнал сбоев); загрузка с ASLR подтверждена (образ загружается не по базовому адресу).
 
 ## Milestone 1: Память и быстрый разбор HTML
+> **Ход работ M1:** ✅ арены (`hal/win64/mem.inc`, `core/arena.inc`, `--selftest arena`; исполнение — на Windows/CI). Далее: `.pdata`/`proc`, загрузка файла и кодировки, токенизатор, DOM Builder, фаззер.
+
 * **Таблица `.pdata`:** макросы `proc` с прологом без `rbp` (`static_rsp_prologue`) и автоматической записью `RUNTIME_FUNCTION`/`UNWIND_INFO`; проверка в CI, что стек раскручивается (тест со сбоем внутри WinAPI). До WinHTTP (M4) — обязательно.
 * **Арены:** `arena_init`, `arena_alloc`, `arena_ensure`, `arena_advance`, `arena_reset` (обнуление первого блока: целиком у `AF_NET_TARGET`, до `Ptr` у остальных; декоммит остального), `arena_release`; тесты инварианта обнулённости.
 * **Загрузка файла** в `raw` и перенос в `src` порциями; кодировки: BOM, `<meta charset>`, UTF-8 (с заменой невалидных последовательностей на U+FFFD), windows-1251, windows-1252, KOI8-R; перезапуск разбора при позднем `<meta charset>`.
