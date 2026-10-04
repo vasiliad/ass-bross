@@ -61,9 +61,9 @@ def patch(path: str) -> None:
             file_offset = 0
             for i in range(num_sections):
                 sec_hdr = sections_start + i * 40
-                sec_rva, sec_vsize, sec_raw_size, sec_raw_ptr = struct.unpack_from("<IIII", data, sec_hdr + 12)
-                if sec_rva <= exc_rva < sec_rva + max(sec_vsize, sec_raw_size):
-                    file_offset = sec_raw_ptr + (exc_rva - sec_rva)
+                vsize, rva, raw_size, raw_ptr = struct.unpack_from("<IIII", data, sec_hdr + 8)
+                if rva <= exc_rva < rva + max(vsize, raw_size):
+                    file_offset = raw_ptr + (exc_rva - rva)
                     break
             
             if file_offset > 0:
