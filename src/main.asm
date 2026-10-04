@@ -224,8 +224,17 @@ proc main uses rbx
   .st_arena:
         call    selftest_arena
         jmp     .st_ret
+        mov     ecx, 2
+        lea     r8, [s_st_name_html]
+        mov     r9d, s_st_name_html.len
+        call    cmdline_is
+        test    eax, eax
+        jnz     .st_html
   .st_file:
         call    selftest_file
+  .st_html:
+        call    selftest_html
+        jmp     .st_ret
   .st_ret:
         test    eax, eax
         mov     eax, EXIT_OK
@@ -244,9 +253,12 @@ include 'debug/dbg_print.inc'
 include 'hal/win64/mem.inc'
 include 'core/arena.inc'
 include 'core/file.inc'
+include 'core/decode.inc'
+include 'engine/html.inc'
 include 'debug/bench.inc'
 include 'debug/selftest.inc'
 include 'debug/selftest_file.inc'
+include 'debug/selftest_html.inc'
 
 iglobal
   ; Код адресуется только RIP-относительно, и перемещений в нём нет. Но Windows не
@@ -274,6 +286,8 @@ iglobal
   sdef s_opt_selftest,     '--selftest'
   sdef s_st_name_arena,    'arena'
   sdef s_st_name_file,      'file'
+  sdef s_st_name_html,      'html'
+  sdef s_test_html,         '<html> <body>Hello</body></html>'
   sdef s_cmdline_bad,      'nanoweb: command line too long or too many arguments', 10
   sdef s_argc,             'argc='
   sdef s_lbracket,         '['
