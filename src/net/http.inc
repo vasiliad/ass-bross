@@ -73,7 +73,7 @@ proc http_get_arena uses rbx rsi rdi r12 r13
         
         ; Получаем текущий указатель аллокации
         mov     rcx, [arena]
-        mov     rbx, [rcx + ARENA.Cursor]
+        mov     rbx, [rcx + ARENA.Ptr]
         
         ; Читаем в этот буфер
         mov     rcx, [hUrl]
