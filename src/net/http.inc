@@ -38,29 +38,14 @@ proc http_get_arena uses rbx rsi rdi r12 r13
         mov     [out_ptr], rax
         
         ; InternetOpenA
-        lea     rcx, [s_http_ua]
-        mov     edx, INTERNET_OPEN_TYPE_PRECONFIG
-        xor     r8d, r8d
-        xor     r9d, r9d
-        push    0               ; dwFlags
-        sub     rsp, 32
-        invoke  InternetOpenA, rcx, rdx, r8, r9, 0
-        add     rsp, 40
+        invoke  InternetOpenA, addr s_http_ua, 0, 0, 0, 0
         test    rax, rax
         jz      .err
         mov     [hInet], rax
         
         ; InternetOpenUrlA
-        mov     rcx, [hInet]
-        mov     rdx, r12
-        xor     r8d, r8d
-        xor     r9d, r9d
-        mov     eax, INTERNET_FLAG_RELOAD or INTERNET_FLAG_NO_CACHE_WRITE or INTERNET_FLAG_SECURE
-        push    0
-        push    rax
-        sub     rsp, 32
-        invoke  InternetOpenUrlA, rcx, rdx, r8, r9, eax, 0
-        add     rsp, 48
+        mov     eax, 0x84000000
+        invoke  InternetOpenUrlA, [hInet], r12, 0, 0, eax, 0
         test    rax, rax
         jz      .err_inet
         mov     [hUrl], rax
