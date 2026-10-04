@@ -232,6 +232,7 @@ include 'core/settings.inc'
 include 'debug/dbg_print.inc'
 include 'hal/win64/mem.inc'
 include 'core/arena.inc'
+include 'core/file.inc'
 include 'debug/bench.inc'
 include 'debug/selftest.inc'
 
@@ -288,6 +289,7 @@ import kernel32, \
        GetCurrentProcess,           'GetCurrentProcess', \
        GetEnvironmentVariableW,     'GetEnvironmentVariableW', \
        GetFileAttributesW,          'GetFileAttributesW', \
+       GetFileSizeEx,               'GetFileSizeEx', \
        GetModuleFileNameW,          'GetModuleFileNameW', \
        GetModuleHandleW,            'GetModuleHandleW', \
        GetStdHandle,                'GetStdHandle', \
