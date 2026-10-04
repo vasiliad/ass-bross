@@ -106,6 +106,21 @@ proc main uses rbx
         test    eax, eax
         jnz     .dump_tokens
 
+        lea     r8, [s_opt_dump_dom]
+        mov     r9d, s_opt_dump_dom.len
+        call    cmdline_is
+        test    eax, eax
+        jnz     .dump_dom
+
+  .dump_dom:
+        cmp     [argc], 3
+        jne     .usage_err
+        mov     ecx, 2
+        call    cmdline_arg
+        mov     rcx, rax
+        call    cmd_dump_dom
+        ret
+
   .dump_tokens:
         cmp     [argc], 3
         jne     .usage_err
@@ -275,6 +290,7 @@ include 'core/arena.inc'
 include 'core/file.inc'
 include 'core/decode.inc'
 include 'engine/html.inc'
+include 'engine/dom.inc'
 include 'engine/dump.inc'
 include 'debug/bench.inc'
 include 'debug/selftest.inc'
@@ -309,6 +325,7 @@ iglobal
   sdef s_st_name_file,      'file'
   sdef s_st_name_html,      'html'
   sdef s_opt_dump_tokens,    '--dump-tokens'
+  sdef s_opt_dump_dom,       '--dump-dom'
   sdef s_test_html,         '<html> <body>Hello</body></html>'
   sdef s_cmdline_bad,      'nanoweb: command line too long or too many arguments', 10
   sdef s_argc,             'argc='
