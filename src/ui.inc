@@ -35,6 +35,8 @@ iglobal
   
   s_lbl_url       db 'Target URL:', 0
   s_lbl_attr_n    db 'Attribute Name:', 0
+  s_btn_go      db 'GO (Browse)', 0
+  hBrowserView  dq ?
   s_lbl_attr_v    db 'Attribute Value:', 0
   
   s_btn_folder    db 'Select Output Folder...', 0
@@ -102,6 +104,38 @@ proc ui_window_proc hwnd, wmsg, wparam, lparam
         je      .cmd_folder
         cmp     eax, 107        ; ID кнопки RUN
         je      .cmd_run
+                cmp     eax, 108        ; ID кнопки GO
+        je      .cmd_go
+        jmp     .done
+        
+  .cmd_go:
+        invoke  SendMessageA, [hBrowserView], WM_SETTEXT, 0, 'Loading and extracting all text, please wait...'
+        
+        mov     rcx, [hEditUrl]
+        lea     rdx, [url_w]
+        mov     r8d, 512
+        sub     rsp, 32
+        call    [GetWindowTextW]
+        add     rsp, 32
+        
+        ; Convert URL
+        mov     rcx, NW_CP_UTF8
+        xor     edx, edx
+        lea     r8, [url_w]
+        mov     r9d, -1
+        lea     rax, [url_u]
+        push    0
+        push    0
+        push    4096
+        push    rax
+        sub     rsp, 32
+        call    [WideCharToMultiByte]
+        add     rsp, 64
+        
+        ; Extract text for browser view
+        lea     rcx, [url_u]
+        mov     rdx, [hBrowserView]
+        call    ui_task_browse
         jmp     .done
         
   .cmd_folder:
@@ -314,8 +348,8 @@ proc ui_show uses rbx rsi rdi r12 r13
         push    r13
         push    0
         push    0
-        push    350      ; height
-        push    500      ; width
+        push    750      ; height
+        push    800      ; width
         push    100      ; y
         push    100      ; x
         mov     r9d, WS_OVERLAPPEDWINDOW or WS_VISIBLE
@@ -331,26 +365,26 @@ proc ui_show uses rbx rsi rdi r12 r13
         invoke  CreateWindowExA, 0, addr s_cls_static, addr s_lbl_url, WS_CHILD or WS_VISIBLE, \
                 20, 20, 100, 20, r12, 0, r13, 0
         invoke  CreateWindowExA, 0, addr s_cls_edit, addr s_def_url, WS_CHILD or WS_VISIBLE or WS_BORDER or ES_AUTOHSCROLL, \
-                130, 20, 330, 24, r12, 101, r13, 0
+                130, 20, 520, 24, r12, 101, r13, 0
         mov     [hEditUrl], rax
 
         ; Attr Name Label & Edit
         invoke  CreateWindowExA, 0, addr s_cls_static, addr s_lbl_attr_n, WS_CHILD or WS_VISIBLE, \
-                20, 60, 100, 20, r12, 0, r13, 0
+                20, 560, 100, 20, r12, 0, r13, 0
         invoke  CreateWindowExA, 0, addr s_cls_edit, addr s_def_attr_n, WS_CHILD or WS_VISIBLE or WS_BORDER or ES_AUTOHSCROLL, \
-                130, 60, 100, 24, r12, 102, r13, 0
+                130, 560, 100, 24, r12, 102, r13, 0
         mov     [hEditAttrN], rax
 
         ; Attr Value Label & Edit
         invoke  CreateWindowExA, 0, addr s_cls_static, addr s_lbl_attr_v, WS_CHILD or WS_VISIBLE, \
-                240, 60, 100, 20, r12, 0, r13, 0
+                240, 560, 100, 20, r12, 0, r13, 0
         invoke  CreateWindowExA, 0, addr s_cls_edit, addr s_def_attr_v, WS_CHILD or WS_VISIBLE or WS_BORDER or ES_AUTOHSCROLL, \
-                350, 60, 110, 24, r12, 103, r13, 0
+                350, 560, 110, 24, r12, 103, r13, 0
         mov     [hEditAttrV], rax
 
         ; Format Combo
         invoke  CreateWindowExA, 0, addr s_cls_combo, 0, WS_CHILD or WS_VISIBLE or CBS_DROPDOWNLIST, \
-                20, 110, 150, 100, r12, 104, r13, 0
+                20, 610, 150, 100, r12, 104, r13, 0
         mov     [hComboFmt], rax
         invoke  SendMessageA, [hComboFmt], CB_ADDSTRING, 0, addr s_fmt_txt
         invoke  SendMessageA, [hComboFmt], CB_ADDSTRING, 0, addr s_fmt_json
@@ -359,15 +393,15 @@ proc ui_show uses rbx rsi rdi r12 r13
 
         ; Folder Button & Label
         invoke  CreateWindowExA, 0, addr s_cls_btn, addr s_btn_folder, WS_CHILD or WS_VISIBLE or BS_PUSHBUTTON, \
-                190, 110, 270, 24, r12, 105, r13, 0
+                190, 610, 270, 24, r12, 105, r13, 0
         mov     [hBtnFolder], rax
         invoke  CreateWindowExA, 0, addr s_cls_static, 0, WS_CHILD or WS_VISIBLE, \
-                20, 150, 440, 40, r12, 106, r13, 0
+                20, 640, 440, 40, r12, 106, r13, 0
         mov     [hLblFolder], rax
 
         ; RUN Button
         invoke  CreateWindowExA, 0, addr s_cls_btn, addr s_btn_run, WS_CHILD or WS_VISIBLE or BS_PUSHBUTTON, \
-                20, 210, 440, 40, r12, 107, r13, 0
+                480, 610, 280, 70, r12, 107, r13, 0
         mov     [hBtnRun], rax
         
   .msg_loop:

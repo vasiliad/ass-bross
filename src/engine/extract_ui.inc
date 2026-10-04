@@ -150,3 +150,91 @@ proc ui_task_extract uses rbx rsi rdi r12 r13 r14 r15
         mov     eax, EXIT_ERROR
         ret
 endp
+
+; -----------------------------------------------------------------------------
+proc ui_task_browse uses rbx rsi rdi r12 r13 r14 r15
+  locals
+    hwnd_browser dq ?
+    html_ptr  dq ?
+    html_len  dq ?
+    dom_root  dq ?
+    ext_ptr   dq ?
+    ext_len   dq ?
+    
+    arena_in  dq 6 dup (?)
+    arena_out dq 6 dup (?)
+  endl
+        mov     [hwnd_browser], rdx
+        
+        lea     rcx, [arena_in]
+        mov     rdx, 1024*1024*10
+        mov     r8d, 65536
+        call    arena_init
+        lea     rcx, [arena_out]
+        mov     rdx, 1024*1024*10
+        mov     r8d, 65536
+        call    arena_init
+
+        lea     rdx, [arena_in]
+        lea     rcx, [url_u]
+        call    http_get_arena
+        test    rax, rax
+        jz      .err
+        mov     [html_ptr], rax
+        mov     [html_len], rdx
+        
+        mov     rcx, rax
+        mov     rdx, [html_len]
+        lea     r8, [arena_in]
+        call    html_tokenize
+        test    rax, rax
+        jz      .err
+        
+        mov     rcx, rax
+        lea     rdx, [arena_in]
+        call    dom_build
+        test    rax, rax
+        jz      .err
+        
+        mov     rcx, rax
+        lea     rdx, [arena_out]
+        mov     r8, 1024*1024*10
+        xor     r9d, r9d
+        call    dom_extract_text
+        mov     [ext_len], rax
+        
+        lea     rcx, [arena_out]
+        xor     edx, edx
+        call    arena_alloc
+        mov     [ext_ptr], rax
+        
+        lea     rcx, [arena_in]
+        xor     edx, edx
+        call    arena_alloc
+        mov     r12, rax
+        
+        mov     rcx, NW_CP_UTF8
+        xor     edx, edx
+        mov     r8, [ext_ptr]
+        mov     r9, [ext_len]
+        push    0
+        push    0
+        push    1024*1024
+        push    r12
+        sub     rsp, 32
+        call    [MultiByteToWideChar]
+        add     rsp, 64
+        
+        mov     rcx, [hwnd_browser]
+        mov     r8, r12
+        mov     rdx, 0x000C
+        sub     rsp, 32
+        call    [SendMessageW]
+        add     rsp, 32
+        
+        mov     eax, 0
+        ret
+  .err:
+        mov     eax, 1
+        ret
+endp
