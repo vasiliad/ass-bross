@@ -18,6 +18,7 @@ include 'win64a.inc'
 include 'include/macros.inc'
 include 'include/structs.inc'
 include 'include/consts.inc'
+include 'include/proc.inc'
 
 ; =============================================================================
 section '.text' code readable executable
@@ -313,6 +314,13 @@ resource manifests, 1, 0, manifest
 resdata manifest
   file 'res/nanoweb.manifest'
 endres
+
+; =============================================================================
+section '.pdata' data readable
+
+data 3
+  NwEmitPData
+end data
 
 ; =============================================================================
 section '.reloc' fixups data readable discardable

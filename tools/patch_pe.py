@@ -47,6 +47,33 @@ def patch(path: str) -> None:
     checksum_off = opt + 64
     flags = struct.unpack_from("<H", data, dll_char_off)[0]
     struct.pack_into("<H", data, dll_char_off, flags | REQUIRED)
+    
+    # Sort .pdata (Exception Directory = DataDirectory[3])
+    # DataDirectories start at opt_hdr + 112. Index 3 is at 112 + 24 = 136.
+    num_rva_sizes = struct.unpack_from("<I", data, opt + 108)[0]
+    if num_rva_sizes > 3:
+        exc_rva, exc_size = struct.unpack_from("<II", data, opt + 136)
+        if exc_rva != 0 and exc_size > 0:
+            num_sections = struct.unpack_from("<H", data, pe + 6)[0]
+            opt_hdr_size = struct.unpack_from("<H", data, pe + 20)[0]
+            sections_start = pe + 24 + opt_hdr_size
+            
+            file_offset = 0
+            for i in range(num_sections):
+                sec_hdr = sections_start + i * 40
+                sec_rva, sec_vsize, sec_raw_size, sec_raw_ptr = struct.unpack_from("<IIII", data, sec_hdr + 12)
+                if sec_rva <= exc_rva < sec_rva + max(sec_vsize, sec_raw_size):
+                    file_offset = sec_raw_ptr + (exc_rva - sec_rva)
+                    break
+            
+            if file_offset > 0:
+                entries = []
+                for i in range(0, exc_size, 12):
+                    entries.append(data[file_offset + i : file_offset + i + 12])
+                entries.sort(key=lambda e: struct.unpack("<I", e[:4])[0])
+                for i, e in enumerate(entries):
+                    data[file_offset + i * 12 : file_offset + (i + 1) * 12] = e
+
     struct.pack_into("<I", data, checksum_off, 0)
     struct.pack_into("<I", data, checksum_off, pe_checksum(bytes(data), checksum_off))
     open(path, "wb").write(data)
