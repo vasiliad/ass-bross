@@ -53,7 +53,19 @@ uglobal
   hBtnFolder  dq ?
   hLblFolder  dq ?
   hBtnRun     dq ?
-  szPath      rb 260
+    szPath      rb 1024
+  
+  url_w       rb 1024
+  attr_n_w    rb 1024
+  attr_v_w    rb 1024
+  folder_w    rb 1024
+  
+  url_u       rb 4096
+  attr_n_u    rb 4096
+  attr_v_u    rb 4096
+  folder_u    rb 4096
+  
+  ui_hFile    dq ?
 endg
 
 ; -----------------------------------------------------------------------------
@@ -100,19 +112,116 @@ proc ui_window_proc hwnd, wmsg, wparam, lparam
         mov     [bi.ulFlags], BIF_RETURNONLYFSDIRS or BIF_USENEWUI
         
         lea     rcx, [bi]
-        invoke  SHBrowseForFolderA, rcx
+        invoke  SHBrowseForFolderW, rcx
         test    rax, rax
         jz      .done
         
-        invoke  SHGetPathFromIDListA, rax, addr szPath
+        invoke  SHGetPathFromIDListW, rax, addr szPath
         
         ; Обновляем текст метки папки
-        invoke  SendMessageA, [hLblFolder], WM_SETTEXT, 0, addr szPath
+        invoke  SendMessageW, [hLblFolder], WM_SETTEXT, 0, addr szPath
         jmp     .done
         
   .cmd_run:
-        ; TODO: Здесь будет вызов сетевого скачивания и парсинга
-        invoke  OutputDebugStringA, 'Run extraction clicked!'
+        mov     rcx, [hEditUrl]
+        lea     rdx, [url_w]
+        mov     r8d, 512
+        sub     rsp, 32
+        call    [GetWindowTextW]
+        add     rsp, 32
+        
+        mov     rcx, [hEditAttrN]
+        lea     rdx, [attr_n_w]
+        mov     r8d, 512
+        sub     rsp, 32
+        call    [GetWindowTextW]
+        add     rsp, 32
+        
+        mov     rcx, [hEditAttrV]
+        lea     rdx, [attr_v_w]
+        mov     r8d, 512
+        sub     rsp, 32
+        call    [GetWindowTextW]
+        add     rsp, 32
+        
+        mov     rcx, [hLblFolder]
+        lea     rdx, [szPath]
+        mov     r8d, 512
+        sub     rsp, 32
+        call    [GetWindowTextW]
+        add     rsp, 32
+        
+        ; Convert URL
+        mov     rcx, NW_CP_UTF8
+        xor     edx, edx
+        lea     r8, [url_w]
+        mov     r9d, -1
+        lea     rax, [url_u]
+        push    0
+        push    0
+        push    4096
+        push    rax
+        sub     rsp, 32
+        call    [WideCharToMultiByte]
+        add     rsp, 64
+        mov     r12, rax
+        dec     r12
+        
+        ; Convert Attr Name
+        mov     rcx, NW_CP_UTF8
+        xor     edx, edx
+        lea     r8, [attr_n_w]
+        mov     r9d, -1
+        lea     rax, [attr_n_u]
+        push    0
+        push    0
+        push    4096
+        push    rax
+        sub     rsp, 32
+        call    [WideCharToMultiByte]
+        add     rsp, 64
+        mov     r13, rax
+        dec     r13
+        
+        ; Convert Attr Value
+        mov     rcx, NW_CP_UTF8
+        xor     edx, edx
+        lea     r8, [attr_v_w]
+        mov     r9d, -1
+        lea     rax, [attr_v_u]
+        push    0
+        push    0
+        push    4096
+        push    rax
+        sub     rsp, 32
+        call    [WideCharToMultiByte]
+        add     rsp, 64
+        mov     r14, rax
+        dec     r14
+        
+        ; Convert Folder
+        mov     rcx, NW_CP_UTF8
+        xor     edx, edx
+        lea     r8, [szPath]
+        mov     r9d, -1
+        lea     rax, [folder_u]
+        push    0
+        push    0
+        push    4096
+        push    rax
+        sub     rsp, 32
+        call    [WideCharToMultiByte]
+        add     rsp, 64
+        mov     r15, rax
+        dec     r15
+        
+        ; Call engine
+        mov     rcx, r12
+        mov     rdx, r13
+        mov     r8, r14
+        mov     r9, r15
+        call    ui_task_extract
+        
         jmp     .done
         
   .wm_destroy:

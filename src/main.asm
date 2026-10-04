@@ -325,6 +325,7 @@ include 'engine/html.inc'
 include 'engine/dom.inc'
 include 'engine/extract.inc'
 include 'engine/extract_cli.inc'
+include 'engine/extract_ui.inc'
 include 'ui.inc'
 include 'engine/dump.inc'
 include 'debug/bench.inc'
@@ -427,11 +428,16 @@ import user32, \
        PostQuitMessage,             'PostQuitMessage', \
        RegisterClassExA,            'RegisterClassExA', \
        SendMessageA,                'SendMessageA', \
+       SendMessageW,                'SendMessageW', \
+       GetWindowTextA,              'GetWindowTextA', \
+       GetWindowTextW,              'GetWindowTextW', \
        TranslateMessage,            'TranslateMessage'
 
 import shell32, \
        SHBrowseForFolderA,          'SHBrowseForFolderA', \
-       SHGetPathFromIDListA,        'SHGetPathFromIDListA'
+       SHBrowseForFolderW,          'SHBrowseForFolderW', \
+       SHGetPathFromIDListA,        'SHGetPathFromIDListA', \
+       SHGetPathFromIDListW,        'SHGetPathFromIDListW'
 
 ; =============================================================================
 section '.rsrc' resource data readable
