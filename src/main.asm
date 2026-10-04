@@ -100,6 +100,21 @@ proc main uses rbx
         mov     eax, EXIT_USAGE
         ret
 
+        lea     r8, [s_opt_dump_tokens]
+        mov     r9d, s_opt_dump_tokens.len
+        call    cmdline_is
+        test    eax, eax
+        jnz     .dump_tokens
+
+  .dump_tokens:
+        cmp     [argc], 3
+        jne     .usage_err
+        mov     ecx, 2
+        call    cmdline_arg
+        mov     rcx, rax
+        call    cmd_dump_tokens
+        ret
+
   .dump_args:
         ; --dump-args: argc и все аргументы, по одному в строке «[i] текст»
         slice   s_argc
@@ -208,33 +223,38 @@ proc main uses rbx
   .selftest:
         cmp     [argc], 3
         jne     .usage_err
+        
         mov     ecx, 2
         lea     r8, [s_st_name_arena]
         mov     r9d, s_st_name_arena.len
         call    cmdline_is
         test    eax, eax
         jnz     .st_arena
+        
         mov     ecx, 2
         lea     r8, [s_st_name_file]
         mov     r9d, s_st_name_file.len
         call    cmdline_is
         test    eax, eax
         jnz     .st_file
-        jmp     .usage_err
-  .st_arena:
-        call    selftest_arena
-        jmp     .st_ret
+        
         mov     ecx, 2
         lea     r8, [s_st_name_html]
         mov     r9d, s_st_name_html.len
         call    cmdline_is
         test    eax, eax
         jnz     .st_html
+        
+        jmp     .usage_err
+
+  .st_arena:
+        call    selftest_arena
+        jmp     .st_ret
   .st_file:
         call    selftest_file
+        jmp     .st_ret
   .st_html:
         call    selftest_html
-        jmp     .st_ret
   .st_ret:
         test    eax, eax
         mov     eax, EXIT_OK
@@ -255,6 +275,7 @@ include 'core/arena.inc'
 include 'core/file.inc'
 include 'core/decode.inc'
 include 'engine/html.inc'
+include 'engine/dump.inc'
 include 'debug/bench.inc'
 include 'debug/selftest.inc'
 include 'debug/selftest_file.inc'
@@ -287,6 +308,7 @@ iglobal
   sdef s_st_name_arena,    'arena'
   sdef s_st_name_file,      'file'
   sdef s_st_name_html,      'html'
+  sdef s_opt_dump_tokens,    '--dump-tokens'
   sdef s_test_html,         '<html> <body>Hello</body></html>'
   sdef s_cmdline_bad,      'nanoweb: command line too long or too many arguments', 10
   sdef s_argc,             'argc='
