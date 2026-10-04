@@ -1,14 +1,17 @@
 ; =============================================================================
-; ui.inc - базовый графический интерфейс для настроек
+; ui.inc - графический интерфейс (универсальный экстрактор)
 ; =============================================================================
 
 WS_OVERLAPPEDWINDOW = 0x00CF0000
 WS_VISIBLE          = 0x10000000
 WS_CHILD            = 0x40000000
+WS_BORDER           = 0x00800000
+ES_AUTOHSCROLL      = 0x00000080
 CBS_DROPDOWNLIST    = 0x0003
 BS_PUSHBUTTON       = 0x0000
 WM_COMMAND          = 0x0111
 WM_DESTROY          = 0x0002
+WM_SETTEXT          = 0x000C
 CB_ADDSTRING        = 0x0143
 CB_SETCURSEL        = 0x014E
 BIF_RETURNONLYFSDIRS= 0x0001
@@ -16,25 +19,40 @@ BIF_USENEWUI        = 0x0040
 
 IDC_ARROW           = 32512
 
-
-
-
 iglobal
   s_ui_class      db 'NanoWebUI', 0
-  s_ui_title      db 'NanoWeb Export Settings', 0
-  s_ui_combo      db 'COMBOBOX', 0
-  s_ui_btn        db 'BUTTON', 0
-  s_ui_btn_text   db 'Select Folder...', 0
+  s_ui_title      db 'NanoWeb Universal Extractor', 0
+  
+  s_cls_combo     db 'COMBOBOX', 0
+  s_cls_btn       db 'BUTTON', 0
+  s_cls_static    db 'STATIC', 0
+  s_cls_edit      db 'EDIT', 0
+  
+  s_lbl_url       db 'Target URL:', 0
+  s_lbl_attr_n    db 'Attribute Name:', 0
+  s_lbl_attr_v    db 'Attribute Value:', 0
+  
+  s_btn_folder    db 'Select Output Folder...', 0
+  s_btn_run       db 'RUN EXTRACTION', 0
   
   s_fmt_txt       db 'TXT Format', 0
   s_fmt_json      db 'JSON Format', 0
   s_fmt_csv       db 'CSV Format', 0
+  
+  s_def_url       db 'https://example.com', 0
+  s_def_attr_n    db 'data-qa', 0
+  s_def_attr_v    db 'content', 0
 endg
 
 uglobal
   hwndMain    dq ?
-  hCombo      dq ?
-  hButton     dq ?
+  hEditUrl    dq ?
+  hEditAttrN  dq ?
+  hEditAttrV  dq ?
+  hComboFmt   dq ?
+  hBtnFolder  dq ?
+  hLblFolder  dq ?
+  hBtnRun     dq ?
   szPath      rb 260
 endg
 
@@ -62,10 +80,14 @@ proc ui_window_proc hwnd, wmsg, wparam, lparam
   .wm_command:
         mov     eax, r8d
         and     eax, 0xFFFF
-        cmp     eax, 102        ; ID кнопки
-        jne     .done
         
-        ; Открываем выбор папки
+        cmp     eax, 105        ; ID кнопки выбора папки
+        je      .cmd_folder
+        cmp     eax, 107        ; ID кнопки RUN
+        je      .cmd_run
+        jmp     .done
+        
+  .cmd_folder:
         lea     rcx, [bi]
         mov     rdx, sizeof.BROWSEINFO
         xor     eax, eax
@@ -84,8 +106,13 @@ proc ui_window_proc hwnd, wmsg, wparam, lparam
         
         invoke  SHGetPathFromIDListA, rax, addr szPath
         
-        ; Выводим в дебаг
-        invoke  OutputDebugStringA, addr szPath
+        ; Обновляем текст метки папки
+        invoke  SendMessageA, [hLblFolder], WM_SETTEXT, 0, addr szPath
+        jmp     .done
+        
+  .cmd_run:
+        ; TODO: Здесь будет вызов сетевого скачивания и парсинга
+        invoke  OutputDebugStringA, 'Run extraction clicked!'
         jmp     .done
         
   .wm_destroy:
@@ -99,14 +126,13 @@ proc ui_window_proc hwnd, wmsg, wparam, lparam
 endp
 
 ; -----------------------------------------------------------------------------
-; ui_show - создает и показывает окно
+; ui_show - создает и показывает главное окно
 ; -----------------------------------------------------------------------------
-proc ui_show uses rbx rsi rdi
+proc ui_show uses rbx rsi rdi r12 r13
   locals
     wc  WNDCLASSEX
     msg MSG
   endl
-        ; Заполняем WNDCLASSEX нулями
         lea     rdi, [wc]
         mov     ecx, sizeof.WNDCLASSEX
         xor     eax, eax
@@ -129,19 +155,19 @@ proc ui_show uses rbx rsi rdi
         lea     rcx, [wc]
         invoke  RegisterClassExA, rcx
         
-        ; Создаем главное окно
         invoke  GetModuleHandleW, 0
-        mov     r10, rax
+        mov     r13, rax ; hInstance
         
+        ; Главное окно
         sub     rsp, 32
         push    0
-        push    r10
+        push    r13
         push    0
         push    0
-        push    200
-        push    400
-        push    100
-        push    100
+        push    350      ; height
+        push    500      ; width
+        push    100      ; y
+        push    100      ; x
         mov     r9d, WS_OVERLAPPEDWINDOW or WS_VISIBLE
         lea     r8, [s_ui_title]
         lea     rdx, [s_ui_class]
@@ -149,49 +175,50 @@ proc ui_show uses rbx rsi rdi
         invoke  CreateWindowExA, rcx, rdx, r8, r9
         add     rsp, 32+64
         mov     [hwndMain], rax
+        mov     r12, rax ; hwndMain
         
-        ; ComboBox
-        sub     rsp, 32
-        push    0
-        push    r10 ; hInstance
-        push    101 ; ID
-        mov     rax, [hwndMain]
-        push    rax ; hWndParent
-        push    100
-        push    150
-        push    20
-        push    20
-        mov     r9d, WS_CHILD or WS_VISIBLE or CBS_DROPDOWNLIST
-        xor     r8d, r8d
-        lea     rdx, [s_ui_combo]
-        xor     ecx, ecx
-        invoke  CreateWindowExA, rcx, rdx, r8, r9
-        add     rsp, 32+64
-        mov     [hCombo], rax
-        
-        invoke  SendMessageA, [hCombo], CB_ADDSTRING, 0, addr s_fmt_txt
-        invoke  SendMessageA, [hCombo], CB_ADDSTRING, 0, addr s_fmt_json
-        invoke  SendMessageA, [hCombo], CB_ADDSTRING, 0, addr s_fmt_csv
-        invoke  SendMessageA, [hCombo], CB_SETCURSEL, 0, 0
-        
-        ; Кнопка
-        sub     rsp, 32
-        push    0
-        push    r10
-        push    102
-        mov     rax, [hwndMain]
-        push    rax
-        push    30
-        push    150
-        push    20
-        push    190
-        mov     r9d, WS_CHILD or WS_VISIBLE or BS_PUSHBUTTON
-        lea     r8, [s_ui_btn_text]
-        lea     rdx, [s_ui_btn]
-        xor     ecx, ecx
-        invoke  CreateWindowExA, rcx, rdx, r8, r9
-        add     rsp, 32+64
-        mov     [hButton], rax
+        ; URL Label & Edit
+        invoke  CreateWindowExA, 0, addr s_cls_static, addr s_lbl_url, WS_CHILD or WS_VISIBLE, \
+                20, 20, 100, 20, r12, 0, r13, 0
+        invoke  CreateWindowExA, 0, addr s_cls_edit, addr s_def_url, WS_CHILD or WS_VISIBLE or WS_BORDER or ES_AUTOHSCROLL, \
+                130, 20, 330, 24, r12, 101, r13, 0
+        mov     [hEditUrl], rax
+
+        ; Attr Name Label & Edit
+        invoke  CreateWindowExA, 0, addr s_cls_static, addr s_lbl_attr_n, WS_CHILD or WS_VISIBLE, \
+                20, 60, 100, 20, r12, 0, r13, 0
+        invoke  CreateWindowExA, 0, addr s_cls_edit, addr s_def_attr_n, WS_CHILD or WS_VISIBLE or WS_BORDER or ES_AUTOHSCROLL, \
+                130, 60, 100, 24, r12, 102, r13, 0
+        mov     [hEditAttrN], rax
+
+        ; Attr Value Label & Edit
+        invoke  CreateWindowExA, 0, addr s_cls_static, addr s_lbl_attr_v, WS_CHILD or WS_VISIBLE, \
+                240, 60, 100, 20, r12, 0, r13, 0
+        invoke  CreateWindowExA, 0, addr s_cls_edit, addr s_def_attr_v, WS_CHILD or WS_VISIBLE or WS_BORDER or ES_AUTOHSCROLL, \
+                350, 60, 110, 24, r12, 103, r13, 0
+        mov     [hEditAttrV], rax
+
+        ; Format Combo
+        invoke  CreateWindowExA, 0, addr s_cls_combo, 0, WS_CHILD or WS_VISIBLE or CBS_DROPDOWNLIST, \
+                20, 110, 150, 100, r12, 104, r13, 0
+        mov     [hComboFmt], rax
+        invoke  SendMessageA, [hComboFmt], CB_ADDSTRING, 0, addr s_fmt_txt
+        invoke  SendMessageA, [hComboFmt], CB_ADDSTRING, 0, addr s_fmt_json
+        invoke  SendMessageA, [hComboFmt], CB_ADDSTRING, 0, addr s_fmt_csv
+        invoke  SendMessageA, [hComboFmt], CB_SETCURSEL, 0, 0
+
+        ; Folder Button & Label
+        invoke  CreateWindowExA, 0, addr s_cls_btn, addr s_btn_folder, WS_CHILD or WS_VISIBLE or BS_PUSHBUTTON, \
+                190, 110, 270, 24, r12, 105, r13, 0
+        mov     [hBtnFolder], rax
+        invoke  CreateWindowExA, 0, addr s_cls_static, 0, WS_CHILD or WS_VISIBLE, \
+                20, 150, 440, 40, r12, 106, r13, 0
+        mov     [hLblFolder], rax
+
+        ; RUN Button
+        invoke  CreateWindowExA, 0, addr s_cls_btn, addr s_btn_run, WS_CHILD or WS_VISIBLE or BS_PUSHBUTTON, \
+                20, 210, 440, 40, r12, 107, r13, 0
+        mov     [hBtnRun], rax
         
   .msg_loop:
         lea     rcx, [msg]
