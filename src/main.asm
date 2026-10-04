@@ -182,9 +182,15 @@ proc main uses rbx
         ret
 
   .usage_ok:
+        ; Показывать GUI только если запустили без аргументов (argc == 1)
+        cmp     [argc], 1
+        jne     .print_usage
         match =0, CONSOLE {
             call    ui_show
+            mov     eax, EXIT_OK
+            ret
         }
+  .print_usage:
         slice   s_usage
         call    dbg_print_str
         mov     eax, EXIT_OK
