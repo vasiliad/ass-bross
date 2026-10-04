@@ -10,6 +10,7 @@ proc cmd_extract uses rbx rsi rdi r12 r13 r14 r15
     attr_v_p  dq ?
     attr_v_l  dq ?
     out_file  dq ?
+    out_len   dq ?
     
     html_ptr  dq ?
     html_len  dq ?
@@ -19,10 +20,10 @@ proc cmd_extract uses rbx rsi rdi r12 r13 r14 r15
     
     bytes_w   dd ?
     hFile     dq ?
-    wpath     db 1024 dup (?)
+    wpath     dq 128 dup (?)
     
-    arena_in  db 48 dup (?)
-    arena_out db 48 dup (?)
+    arena_in  dq 6 dup (?)
+    arena_out dq 6 dup (?)
   endl
         mov     ecx, 2
         call    cmdline_arg
@@ -38,6 +39,7 @@ proc cmd_extract uses rbx rsi rdi r12 r13 r14 r15
         mov     ecx, 5
         call    cmdline_arg
         mov     [out_file], rax
+        mov     [out_len], rdx
 
         lea     rcx, [arena_in]
         mov     rdx, 1024*1024*10
@@ -94,41 +96,54 @@ proc cmd_extract uses rbx rsi rdi r12 r13 r14 r15
         mov     [ext_ptr], rax
         
         ; Пишем в файл
+
+        ; MultiByteToWideChar
         mov     rcx, NW_CP_UTF8
         xor     edx, edx
         mov     r8, [out_file]
-        mov     r9d, -1
+        mov     r9, [out_len]
         lea     rax, [wpath]
-        push    512
+        push    1024
         push    rax
         sub     rsp, 32
-        call [MultiByteToWideChar]
+        call    [MultiByteToWideChar]
         add     rsp, 48
         
+        ; Null-terminate wpath manually
         lea     rcx, [wpath]
-        mov     edx, 0x40000000 ; GENERIC_WRITE
+        mov     word [rcx + rax*2], 0
+        
+        ; CreateFileW
+        lea     rcx, [wpath]
+        mov     edx, 0x40000000
         xor     r8d, r8d
         xor     r9d, r9d
         push    0
-        push    0x80 ; FILE_ATTRIBUTE_NORMAL
-        push    2    ; CREATE_ALWAYS
+        push    0x80
+        push    2
         sub     rsp, 32
-        invoke  CreateFileW, rcx, rdx, r8, r9
+        call    [CreateFileW]
         add     rsp, 56
         cmp     rax, -1
         je      .err
         mov     [hFile], rax
         
+        ; WriteFile
         mov     rcx, [hFile]
         mov     rdx, [ext_ptr]
         mov     r8, [ext_len]
         lea     r9, [bytes_w]
         push    0
         sub     rsp, 32
-        invoke  WriteFile, rcx, rdx, r8, r9, 0
+        call    [WriteFile]
         add     rsp, 40
         
-        invoke  CloseHandle, [hFile]
+        ; CloseHandle
+        mov     rcx, [hFile]
+        sub     rsp, 32
+        call    [CloseHandle]
+        add     rsp, 32
+
         
         mov     eax, EXIT_OK
         ret
