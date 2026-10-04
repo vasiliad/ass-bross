@@ -90,6 +90,28 @@ proc main uses rbx
         test    eax, eax
         jnz     .selftest
 
+        mov     ecx, 1
+        lea     r8, [s_opt_dump_tokens]
+        mov     r9d, s_opt_dump_tokens.len
+        call    cmdline_is
+        test    eax, eax
+        jnz     .dump_tokens
+
+        mov     ecx, 1
+        lea     r8, [s_opt_dump_dom]
+        mov     r9d, s_opt_dump_dom.len
+        call    cmdline_is
+        test    eax, eax
+        jnz     .dump_dom
+
+
+        mov     ecx, 1
+        lea     r8, [s_opt_extract]
+        mov     r9d, s_opt_extract.len
+        call    cmdline_is
+        test    eax, eax
+        jnz     .cmd_extract
+
         slice   s_unknown
         call    sys_write_err
         jmp     .usage_err
@@ -100,24 +122,7 @@ proc main uses rbx
         mov     eax, EXIT_USAGE
         ret
 
-        lea     r8, [s_opt_dump_tokens]
-        mov     r9d, s_opt_dump_tokens.len
-        call    cmdline_is
-        test    eax, eax
-        jnz     .dump_tokens
 
-        lea     r8, [s_opt_dump_dom]
-        mov     r9d, s_opt_dump_dom.len
-        call    cmdline_is
-        test    eax, eax
-        jnz     .dump_dom
-
-
-        lea     r8, [s_opt_extract]
-        mov     r9d, s_opt_extract.len
-        call    cmdline_is
-        test    eax, eax
-        jnz     .cmd_extract
 
   .cmd_extract:
         cmp     [argc], 6
