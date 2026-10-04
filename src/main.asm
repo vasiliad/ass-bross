@@ -126,7 +126,7 @@ proc main uses rbx
         ; 2 = url, 3 = attr name, 4 = attr val, 5 = out file
         mov     ecx, 2
         call    cmdline_arg
-        ; Дальше нужен вызов функции cmd_extract в engine/dump.inc
+        call    cmd_extract
         jmp     .dump_done
 
   .dump_dom:
@@ -319,6 +319,7 @@ include 'net/http.inc'
 include 'engine/html.inc'
 include 'engine/dom.inc'
 include 'engine/extract.inc'
+include 'engine/extract_cli.inc'
 include 'ui.inc'
 include 'engine/dump.inc'
 include 'debug/bench.inc'
