@@ -2,3 +2,4 @@ build/
 .venv/
 __pycache__/
 .pytest_cache/
+*.py\n*.html\n*.txt\n*.bin\n*.exe\nserver.pid
